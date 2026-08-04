@@ -1,22 +1,27 @@
 {
   "name": "amber-ke-baatein",
-  "type": "module",
+  "private": true,
   "version": "0.0.1",
+  "type": "module",
   "engines": {
     "node": ">=22.12.0"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "check": "astro check",
-    "astro": "astro"
-  },
-  "dependencies": {
-    "astro": "^7.1.6"
+    "dev": "concurrently -n web,cms -c cyan,magenta \"npm:dev:web\" \"npm:dev:cms\"",
+    "dev:web": "npm run dev --workspace @amber/web",
+    "dev:cms": "npm run dev --workspace @amber/cms",
+    "build": "npm run build --workspace @amber/cms && npm run build --workspace @amber/web",
+    "build:web": "npm run build --workspace @amber/web",
+    "build:cms": "npm run build --workspace @amber/cms",
+    "check": "npm run check --workspace @amber/web",
+    "payload": "npm run payload --workspace @amber/cms",
+    "generate:types": "npm run generate:types --workspace @amber/cms"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
-    "typescript": "^6.0.3"
+    "concurrently": "^9.2.1"
   }
 }
