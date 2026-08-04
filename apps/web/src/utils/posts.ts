@@ -58,12 +58,19 @@ interface CmsResponse {
 }
 
 /**
- * एक ही बार CMS से पूछिए / fetch once per build.
+ * एक ही बार CMS से पूछिए — पर सिर्फ़ build के समय.
+ * Fetch once per build — but only when building.
  *
- * getStaticPaths, होम पन्ना और श्रेणी वाला पन्ना — तीनों यही चाहते हैं.
- * getStaticPaths, the homepage and the category page each ask for posts during
- * the same build; without this the CMS would be hit three times for identical
- * data.
+ * getStaticPaths, होम पन्ना और श्रेणी वाला पन्ना, तीनों यही माँगते हैं, इसलिए
+ * build में एक ही बार पूछना ठीक है।
+ * getStaticPaths, the homepage and the category page all ask for posts during
+ * one build, so caching avoids three identical round-trips.
+ *
+ * dev में यह ज़हर है: CMS में रचना बदलने के बाद पन्ना पुराना ही दिखता रहेगा जब तक
+ * dev server दोबारा न चले। इसलिए dev में हर बार ताज़ा माँगते हैं।
+ * In dev this would be actively harmful: the module stays loaded between
+ * requests, so after editing a post in the CMS the page would keep serving the
+ * old copy until the dev server restarted. Dev therefore always refetches.
  */
 let cache: Promise<Post[]> | null = null;
 
@@ -117,6 +124,13 @@ async function fetchPosts(): Promise<Post[]> {
  * so the output stays stable between builds.
  */
 export async function getPosts(): Promise<Post[]> {
+  if (import.meta.env.DEV) {
+    const fresh = await fetchPosts();
+    return [...fresh].sort(
+      (a, b) => b.data.order - a.data.order || a.data.title.localeCompare(b.data.title, 'hi')
+    );
+  }
+
   cache ??= fetchPosts();
   const posts = await cache;
   return [...posts].sort(
