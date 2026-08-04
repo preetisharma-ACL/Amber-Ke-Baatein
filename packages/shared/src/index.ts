@@ -11,6 +11,14 @@
  * hand-written, transport-level shapes the Astro side actually consumes.
  */
 
+export {
+  escapeHtml,
+  lexicalToHtml,
+  lexicalToPlainText,
+  type LexicalNode,
+  type LexicalRoot,
+} from './lexical'
+
 /** हर पन्ने पर दिखने वाला "सभी" फ़िल्टर / the "all" pseudo-category. */
 export const ALL_CATEGORIES = 'सभी'
 

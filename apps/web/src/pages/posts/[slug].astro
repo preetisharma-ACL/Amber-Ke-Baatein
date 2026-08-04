@@ -1,11 +1,14 @@
 ---
-import { render } from 'astro:content';
 import PostLayout from '../../layouts/PostLayout.astro';
 import { getPosts, type Post } from '../../utils/posts';
 
 /**
  * एक-एक रचना का अपना पन्ना / one real page per poem.
- * Replaces the old #p1 / #p2 hash routing.
+ *
+ * रचना का शरीर अब CMS से बना-बनाया HTML आता है — पहले यह markdown था जिसे
+ * Astro खुद render करता था.
+ * The body now arrives as HTML already rendered from the CMS's Lexical
+ * document, where it used to be markdown that Astro rendered itself.
  */
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -20,9 +23,15 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
 ---
 
 <PostLayout post={post}>
-  <Content />
+  {/*
+    set:html सुरक्षित है क्योंकि HTML हमारा अपना बनाया हुआ है — lexicalToHtml
+    हर text को escape करता है, इसलिए रचना में लिखा `<div>` अक्षरों की तरह दिखता है.
+    Safe because this HTML is produced by our own renderer, not pasted in:
+    lexicalToHtml escapes every text node, so example markup inside a post
+    renders as visible characters instead of live tags.
+  */}
+  <Fragment set:html={post.html} />
 </PostLayout>

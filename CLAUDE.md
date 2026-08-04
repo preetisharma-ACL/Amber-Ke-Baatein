@@ -9,7 +9,16 @@ packages/shared   Types and constants both apps import (raw .ts, no build step)
 ```
 
 Content lives in **Neon Postgres**. Payload owns the schema; the Astro site reads
-through the CMS API.
+through the CMS API at build time.
+
+**The markdown files in `apps/web/src/content/posts/` are dead.** They were the
+source before the migration and are kept only as a backup and as input for
+`migrate:markdown`. Editing them changes nothing — posts are edited at `/admin`.
+
+Because the site is static and fetches at build time, **the CMS must be running
+to build the site**. `npm run build` starts the CMS build first, but for
+`build:web` alone you need `npm run dev:cms` up, or the build fails with a clear
+"could not reach the CMS" error rather than silently publishing an empty site.
 
 ## Development
 
@@ -54,6 +63,16 @@ committed template.
   this, so a crafted POST cannot self-approve.
 - **Uploads go to local disk** (`apps/cms/media/`). Serverless hosts have an
   ephemeral filesystem — switch to S3/R2 storage before deploying.
+- **Poems are a `verse` block, not raw HTML.** Lexical has no raw-HTML node, so
+  the old `<div class="verse">` markup became a real editor block: the author
+  types plain lines, a blank line starts a new stanza. `packages/shared/src/lexical.ts`
+  renders it back to the original `.verse`/`.stanza` markup so the CSS is unchanged.
+- **Quoted song lines are blockquotes**, rendered as `<p class="lyric">`. Centred
+  lines are paragraphs with Lexical's `center` alignment, rendered as `<p class="center">`.
+- **The Lexical→HTML renderer is ours**, not Payload's. Using Payload's converter
+  would drag React into a static site and emit generic tags, losing the site's
+  existing classes. It escapes all text, which matters because posts can contain
+  example markup as literal content.
 
 ## Documentation
 

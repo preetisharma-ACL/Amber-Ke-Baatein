@@ -1,11 +1,17 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import {
+  AlignFeature,
+  BlocksFeature,
+  CodeBlock,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical'
 import { config as loadEnv } from 'dotenv'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { VerseBlock } from './blocks/Verse'
 import { Categories } from './collections/Categories'
 import { Comments } from './collections/Comments'
 import { Media } from './collections/Media'
@@ -39,7 +45,21 @@ export default buildConfig({
     },
   },
   collections: [Posts, Categories, Media, Comments, Users],
-  editor: lexicalEditor(),
+  editor: lexicalEditor({
+    features: ({ defaultFeatures }) => [
+      ...defaultFeatures,
+      // "बीचोंबीच" वाली पंक्ति के लिए / powers the centred single line, which
+      // used to be written as raw <p class="center">.
+      AlignFeature(),
+      // कविता का बटन / gives the author a "कविता" button instead of raw HTML.
+      // CodeBlock इसलिए कि ``` वाले हिस्से सही से आएँ — बिना इसके markdown का
+      // fence टूटकर सादा text बन जाता है और अंदर का `---` लकीर बन जाता है।
+      // CodeBlock is required for ``` fences to survive conversion at all:
+      // without it the fence markers become literal text and a `---` inside the
+      // example is misread as a horizontal rule.
+      BlocksFeature({ blocks: [VerseBlock, CodeBlock()] }),
+    ],
+  }),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
