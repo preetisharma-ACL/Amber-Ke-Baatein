@@ -1,0 +1,97 @@
+---
+import { ALL_CATEGORIES } from '../utils/posts';
+
+interface Props {
+  categories: string[];
+  /** जिस सूची को फ़िल्टर करना है / id of the PostList this filters */
+  target: string;
+}
+
+const { categories, target } = Astro.props;
+---
+
+<div class="chips" id="chips" data-target={target}>
+  {
+    categories.map((cat) => (
+      <button
+        class:list={['chip', { on: cat === ALL_CATEGORIES }]}
+        type="button"
+        data-cat={cat}
+        aria-pressed={cat === ALL_CATEGORIES ? 'true' : 'false'}
+      >
+        {cat}
+      </button>
+    ))
+  }
+</div>
+
+<style>
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    justify-content: center;
+    margin: 1.8rem 0 0.5rem;
+  }
+
+  .chip {
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2rem;
+    padding: 0.45rem 1.15rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    transition: all 0.3s ease;
+  }
+
+  .chip:hover {
+    border-color: var(--kite);
+    color: var(--kite);
+  }
+
+  .chip.on {
+    border-color: var(--kite);
+    color: var(--kite);
+    background: rgba(224, 101, 76, 0.1);
+  }
+</style>
+
+<script>
+  const ALL = 'सभी';
+  const chipBox = document.getElementById('chips');
+  const list = document.getElementById(chipBox?.dataset.target ?? '');
+
+  if (chipBox && list) {
+    const chips = [...chipBox.querySelectorAll<HTMLButtonElement>('.chip')];
+    const cards = [...list.querySelectorAll<HTMLElement>('.entry')];
+    const emptyNote = list.querySelector<HTMLElement>('[data-empty]');
+
+    function apply(cat: string) {
+      const visible: HTMLElement[] = [];
+
+      for (const card of cards) {
+        const match = cat === ALL || card.dataset.category === cat;
+        card.hidden = !match;
+        card.classList.remove('is-last');
+        if (match) visible.push(card);
+      }
+
+      // आख़िरी दिखने वाले कार्ड के नीचे लकीर नहीं चाहिए
+      visible.at(-1)?.classList.add('is-last');
+      if (emptyNote) emptyNote.hidden = visible.length > 0;
+    }
+
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        for (const c of chips) {
+          const isOn = c === chip;
+          c.classList.toggle('on', isOn);
+          c.setAttribute('aria-pressed', String(isOn));
+        }
+        apply(chip.dataset.cat ?? ALL);
+      });
+    }
+  }
+</script>

@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GalleryGrid from '../components/GalleryGrid.astro';
+
+/** गैलरी / gallery. */
+---
+
+<BaseLayout title="गैलरी" description="अम्बर की बातें — कुछ तस्वीरें, कुछ यादें।">
+  <section class="page">
+    <div class="page-head">
+      <h2>गैलरी</h2>
+      <div class="sub">कुछ तस्वीरें, कुछ यादें</div>
+    </div>
+
+    <GalleryGrid />
+
+    <p class="foot-note">तस्वीरें भेज दीजिए, यहाँ लग जाएँगी।</p>
+  </section>
+</BaseLayout>
+
+<style>
+  .foot-note {
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-top: 1rem;
+  }
+</style>

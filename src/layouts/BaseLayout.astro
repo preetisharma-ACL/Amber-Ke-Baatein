@@ -1,0 +1,64 @@
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ReadingProgressBar from '../components/ReadingProgressBar.astro';
+import { site } from '../data/site';
+import '../styles/global.css';
+
+interface Props {
+  /** पन्ने का नाम / page title, rendered as "<title> — अम्बर की बातें" */
+  title?: string;
+  description?: string;
+}
+
+const { title, description = site.description } = Astro.props;
+
+// होम पर सिर्फ़ साइट का नाम, बाकी पन्नों पर "पन्ना — साइट"
+const pageTitle = title ? `${title} — ${site.title}` : site.title;
+
+// `Astro.site` is unset until a site URL is configured, so fall back to the
+// current origin. Either way og:url reflects the real page rather than a
+// single hardcoded address like the original file used.
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang="hi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Serif+Devanagari:wght@200;300;400;500&family=Kalam:wght@300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <slot name="head" />
+  </head>
+
+  <body>
+    <ReadingProgressBar />
+    <SiteHeader />
+
+    {/* hero पूरी चौड़ाई लेता है, इसलिए .wrap के बाहर / hero is full-bleed */}
+    <slot name="hero" />
+
+    <div class="wrap">
+      <slot />
+      <SiteFooter />
+    </div>
+  </body>
+</html>

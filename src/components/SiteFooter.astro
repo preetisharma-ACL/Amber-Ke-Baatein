@@ -1,0 +1,77 @@
+---
+import { site, socials } from '../data/site';
+
+/**
+ * नीचे की पट्टी / footer: social links, handle, copyright.
+ * Facebook has no page yet, so it stays a placeholder `#` link carrying the
+ * same tooltip the original file used.
+ */
+---
+
+<footer class="site">
+  <div class="social">
+    {
+      socials.map((s) =>
+        s.live ? (
+          <a href={s.href} target="_blank" rel="noopener">
+            {s.label}
+          </a>
+        ) : (
+          <a href={s.href} title={s.title} class="placeholder" aria-disabled="true">
+            {s.label}
+          </a>
+        )
+      )
+    }
+  </div>
+  <div class="handle">{site.handle}</div>
+  <div class="name">{site.copyright}</div>
+</footer>
+
+<style>
+  footer.site {
+    border-top: 1px solid var(--rule);
+    margin-top: 3.5rem;
+    padding: 2.8rem 0 3.5rem;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+  }
+
+  .social {
+    display: flex;
+    justify-content: center;
+    gap: 1.8rem;
+    margin-bottom: 1.3rem;
+  }
+
+  .social a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .social a:hover {
+    color: var(--kite);
+  }
+
+  .handle {
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 0.16em;
+    font-size: 0.82rem;
+    color: var(--kite);
+    opacity: 0.85;
+  }
+
+  .name {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 600px) {
+    .social {
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+  }
+</style>

@@ -1,0 +1,188 @@
+---
+import { nav, site } from '../data/site';
+
+/**
+ * ऊपर की पट्टी / the fixed navbar: kite logo, site name, links, burger menu.
+ * The active link is decided from the real URL now — no hash routing.
+ */
+const path = Astro.url.pathname;
+
+function isActive(href: string): boolean {
+  if (href === '/') return path === '/';
+  // /posts भी सक्रिय रहे जब कोई रचना खुली हो / keep "रचनाएँ" lit on /posts/<slug>
+  return path === href || path.startsWith(`${href}/`);
+}
+---
+
+<nav class="topbar" id="topbar">
+  <a class="brand" href="/" aria-label={site.title}>
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M50 10 L76 42 L50 84 L24 42 Z" fill="#e0654c"></path>
+      <path d="M50 10 L50 84 M24 42 L76 42" stroke="#161412" stroke-width="3"></path>
+      <path
+        d="M50 84 q8 10 -2 16 q-8 6 -1 13"
+        stroke="#ece4d6"
+        stroke-width="3"
+        fill="none"
+        stroke-linecap="round"></path>
+    </svg>
+    <span>{site.title}</span>
+  </a>
+
+  <button class="burger" id="burger" aria-label="मेन्यू" aria-expanded="false" aria-controls="menu"
+    >☰</button
+  >
+
+  <div class="menu" id="menu">
+    {
+      nav.map((item) => (
+        <a
+          href={item.href}
+          class:list={[{ on: isActive(item.href) }]}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+        >
+          {item.label}
+        </a>
+      ))
+    }
+  </div>
+</nav>
+
+<style>
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.4rem;
+    background: rgba(22, 20, 18, 0);
+    backdrop-filter: blur(0px);
+    border-bottom: 1px solid transparent;
+    transition:
+      background 0.4s ease,
+      backdrop-filter 0.4s ease,
+      border-color 0.4s ease;
+  }
+
+  /* स्क्रॉल होने पर / applied by ReadingProgressBar's scroll listener */
+  .topbar.solid {
+    background: rgba(22, 20, 18, 0.86);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .brand svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
+  }
+
+  .brand span {
+    font-size: 0.98rem;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .menu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .menu a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.92rem;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid transparent;
+    transition:
+      color 0.25s ease,
+      border-color 0.25s ease;
+    white-space: nowrap;
+  }
+
+  .menu a:hover {
+    color: var(--ink);
+  }
+
+  .menu a.on {
+    color: var(--kite);
+    border-bottom-color: var(--kite);
+  }
+
+  .burger {
+    display: none;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--ink);
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0.2rem 0.3rem;
+  }
+
+  @media (max-width: 860px) {
+    .burger {
+      display: block;
+    }
+
+    .menu {
+      position: absolute;
+      top: var(--nav-h);
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      background: rgba(22, 20, 18, 0.97);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--rule);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+
+    .menu.open {
+      max-height: 22rem;
+    }
+
+    .menu a {
+      padding: 0.95rem 1.5rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .menu a.on {
+      border-bottom-color: var(--rule);
+      background: rgba(224, 101, 76, 0.08);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .brand span {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const burger = document.getElementById('burger');
+  const menu = document.getElementById('menu');
+
+  burger?.addEventListener('click', () => {
+    const open = menu?.classList.toggle('open') ?? false;
+    burger.setAttribute('aria-expanded', String(open));
+  });
+</script>

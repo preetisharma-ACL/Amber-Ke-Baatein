@@ -1,0 +1,61 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import type { Post } from '../utils/posts';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { title, date, category, excerpt } = post.data;
+---
+
+<BaseLayout title={title} description={excerpt}>
+  <article class="post">
+    <div class="date">{date} · {category}</div>
+    <h2>{title}</h2>
+    <div class="title-rule"></div>
+
+    {/* रचना का शरीर — .post-body की शैली global.css में है */}
+    <div class="post-body">
+      <slot />
+    </div>
+
+    {/* हर रचना के नीचे अपने आप — लिखने की ज़रूरत नहीं */}
+    <div class="ornament">✦ ✦ ✦</div>
+    <div class="post-nav">
+      <a class="btn" href="/posts">← सारी रचनाएँ</a>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .post {
+    padding: 5.5rem 0 3rem;
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .date {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--kite-2);
+    text-align: center;
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: center;
+    margin: 0.85rem auto 1.5rem;
+    max-width: 22ch;
+  }
+
+  .post-nav {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.5rem;
+  }
+</style>

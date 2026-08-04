@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import PostList from '../components/PostList.astro';
+import { getLatestPosts } from '../utils/posts';
+
+/** होम / home — hero plus the three newest posts. */
+const posts = await getLatestPosts(3);
+---
+
+<BaseLayout>
+  <Hero slot="hero" />
+
+  <section class="page">
+    <div class="section-label">नई रचनाएँ</div>
+    <PostList posts={posts} emptyMessage="अभी कुछ लिखा नहीं गया।" />
+  </section>
+</BaseLayout>

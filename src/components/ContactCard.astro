@@ -1,0 +1,60 @@
+---
+import { contactRows } from '../data/site';
+
+/** संपर्क की पंक्तियाँ / the email + social rows, driven by src/data/site.ts */
+---
+
+<div class="contact-card">
+  {
+    contactRows.map((row) => (
+      <div class="contact-row">
+        <span class="lbl">{row.label}</span>
+        {row.external ? (
+          <a href={row.href} target="_blank" rel="noopener">
+            {row.text}
+          </a>
+        ) : (
+          <a href={row.href}>{row.text}</a>
+        )}
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .contact-card {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 2rem 1.8rem;
+    margin: 2rem 0;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(224, 101, 76, 0.07), rgba(143, 176, 188, 0.04));
+  }
+
+  .contact-card a {
+    color: var(--kite);
+    text-decoration: none;
+  }
+
+  .contact-card a:hover {
+    text-decoration: underline;
+  }
+
+  .contact-row {
+    margin-bottom: 1.4rem;
+  }
+
+  .contact-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .contact-row .lbl {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+</style>

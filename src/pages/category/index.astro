@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryFilter from '../../components/CategoryFilter.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts, getCategories } from '../../utils/posts';
+
+/**
+ * श्रेणी / browse by category.
+ * Every post is rendered once; the chips just show and hide cards on the
+ * client, so the page stays fully static.
+ */
+const posts = await getPosts();
+const categories = await getCategories();
+---
+
+<BaseLayout title="श्रेणी" description="अम्बर की बातें — जो पढ़ना हो, वही चुनिए।">
+  <section class="page">
+    <div class="page-head">
+      <h2>श्रेणी</h2>
+      <div class="sub">जो पढ़ना हो, वही चुनिए</div>
+    </div>
+
+    <CategoryFilter categories={categories} target="category-list" />
+    <PostList posts={posts} id="category-list" />
+  </section>
+</BaseLayout>

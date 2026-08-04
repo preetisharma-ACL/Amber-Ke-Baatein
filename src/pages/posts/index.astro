@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts } from '../../utils/posts';
+
+/** रचनाएँ / all posts. */
+const posts = await getPosts();
+---
+
+<BaseLayout title="रचनाएँ" description="अम्बर की बातें — जो अब तक लिखा गया।">
+  <section class="page">
+    <div class="page-head">
+      <h2>रचनाएँ</h2>
+      <div class="sub">जो अब तक लिखा गया</div>
+    </div>
+    <PostList posts={posts} emptyMessage="अभी कुछ लिखा नहीं गया।" />
+  </section>
+</BaseLayout>

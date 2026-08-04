@@ -1,0 +1,88 @@
+---
+import type { Post } from '../utils/posts';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { date, category, title, excerpt } = post.data;
+---
+
+{/* data-category श्रेणी वाले पन्ने का फ़िल्टर पढ़ता है / read by the category filter */}
+<a class="entry" href={`/posts/${post.id}`} data-category={category}>
+  <div class="meta">{date} · <span class="cat">{category}</span></div>
+  <h3>{title}</h3>
+  <p>{excerpt}</p>
+  <span class="more">पढ़िए →</span>
+</a>
+
+<style>
+  /* पूरा कार्ड ही लिंक है — पहले यह एक क्लिक-हैंडलर वाला div था.
+     The whole card is the link now; it used to be a div with a click handler. */
+  .entry {
+    display: block;
+    padding: 2.4rem 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* आख़िरी कार्ड के नीचे लकीर नहीं / no rule under the final card.
+     `:last-of-type` (not `:last-child`) so the empty-state <p> that follows
+     the cards does not steal the match. `.is-last` is set by the category
+     filter, which has to pick the last *visible* card. */
+  .entry:last-of-type,
+  .entry.is-last {
+    border-bottom: 0;
+  }
+
+  /* .entry sets display:block, which would beat the UA rule for [hidden]. */
+  .entry[hidden] {
+    display: none;
+  }
+
+  .meta {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--kite-2);
+  }
+
+  .meta .cat {
+    color: var(--kite);
+    opacity: 0.9;
+  }
+
+  h3 {
+    font-size: 1.55rem;
+    font-weight: 400;
+    line-height: 1.5;
+    margin: 0.5rem 0 0.7rem;
+    transition: color 0.3s ease;
+  }
+
+  .entry:hover h3 {
+    color: var(--kite);
+  }
+
+  p {
+    color: var(--ink-soft);
+    font-size: 1rem;
+    line-height: 1.95;
+  }
+
+  .more {
+    display: inline-block;
+    margin-top: 0.8rem;
+    font-size: 0.9rem;
+    color: var(--kite);
+    transition: transform 0.3s ease;
+  }
+
+  .entry:hover .more {
+    transform: translateX(5px);
+  }
+</style>

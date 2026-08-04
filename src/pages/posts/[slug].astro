@@ -1,0 +1,28 @@
+---
+import { render } from 'astro:content';
+import PostLayout from '../../layouts/PostLayout.astro';
+import { getPosts, type Post } from '../../utils/posts';
+
+/**
+ * एक-एक रचना का अपना पन्ना / one real page per poem.
+ * Replaces the old #p1 / #p2 hash routing.
+ */
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<PostLayout post={post}>
+  <Content />
+</PostLayout>

@@ -1,0 +1,36 @@
+---
+/**
+ * ऊपर की पतली लकीर / the thin scroll-progress bar pinned to the top.
+ * Also toggles `.solid` on the navbar once the page has scrolled past 40px,
+ * exactly as the original single-file build did.
+ */
+---
+
+<div class="progress" id="progress"></div>
+
+<style>
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--kite);
+    z-index: 99;
+    transition: width 0.1s linear;
+  }
+</style>
+
+<script>
+  const bar = document.getElementById('progress');
+  const topbar = document.getElementById('topbar');
+
+  function onScroll() {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+    topbar?.classList.toggle('solid', window.scrollY > 40);
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>

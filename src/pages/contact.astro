@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ContactCard from '../components/ContactCard.astro';
+
+/** संपर्क / contact. */
+---
+
+<BaseLayout title="संपर्क" description="अम्बर की बातें — कुछ कहना हो तो।">
+  <section class="page">
+    <div class="page-head">
+      <h2>संपर्क</h2>
+      <div class="sub">कुछ कहना हो तो</div>
+    </div>
+
+    <ContactCard />
+
+    <p class="foot-note">
+      कोई रचना अच्छी लगे तो बता दीजिएगा — लिखने वाले के लिए इतना ही बहुत होता है।
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .foot-note {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+</style>

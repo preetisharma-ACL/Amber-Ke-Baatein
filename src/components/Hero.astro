@@ -1,0 +1,310 @@
+---
+import { Image, getImage } from 'astro:assets';
+import { site } from '../data/site';
+import kiteSky from '../assets/kite-sky.jpg';
+import portrait from '../assets/alok-portrait.jpg';
+
+/**
+ * होम पन्ने का ऊपरी हिस्सा / the full-bleed homepage hero.
+ * Left: logo, title, tagline, byline. Right: polaroid portrait + short bio.
+ *
+ * The background photo used to be a base64 blob inside a CSS custom property.
+ * It is now a real asset, optimized at build time and handed to CSS through
+ * an inline `--kite-img` variable.
+ */
+const kiteBg = await getImage({ src: kiteSky, format: 'webp', width: 1600 });
+---
+
+<section class="hero" id="hero">
+  <div class="hero-photo" style={`--kite-img:url(${kiteBg.src})`}></div>
+
+  <div class="hero-grid">
+    <div class="hero-text">
+      <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 10 L76 42 L50 84 L24 42 Z" fill="#e0654c"></path>
+        <path d="M50 10 L50 84 M24 42 L76 42" stroke="#161412" stroke-width="2.6"></path>
+        <path
+          d="M50 84 q8 10 -2 16 q-8 6 -1 13"
+          stroke="#ece4d6"
+          stroke-width="2.6"
+          fill="none"
+          stroke-linecap="round"></path>
+      </svg>
+      <h1>{site.title}</h1>
+      <div class="tagline">{site.tagline[0]}<br />{site.tagline[1]}</div>
+      <div class="byline">{site.byline}</div>
+      <div class="rule"></div>
+    </div>
+
+    <div class="hero-about">
+      <div class="portrait">
+        <div class="frame">
+          <Image src={portrait} alt={site.byline} width={440} loading="eager" />
+        </div>
+        <div class="datestamp">{site.portraitDatestamp}</div>
+        <div class="caption">{site.portraitCaption}</div>
+      </div>
+      <h3>{site.byline}</h3>
+      <div class="role">{site.role}</div>
+      <p class="bio">{site.bio}</p>
+      <div class="signature">{site.signature}</div>
+    </div>
+  </div>
+
+  <div class="scroll-cue">↓</div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .hero-photo {
+    position: absolute;
+    inset: 0;
+    background-image: var(--kite-img);
+    background-size: cover;
+    background-position: center 55%;
+    filter: brightness(0.5) contrast(1.06) saturate(1.02);
+  }
+
+  .hero-photo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(22, 20, 18, 0.78) 0%,
+        rgba(22, 20, 18, 0.38) 32%,
+        rgba(22, 20, 18, 0.3) 60%
+      ),
+      linear-gradient(0deg, var(--paper) 0%, rgba(22, 20, 18, 0.82) 12%, transparent 34%);
+  }
+
+  .hero-grid {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 7rem 2.2rem 5rem;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 4.5rem;
+    align-items: center;
+  }
+
+  .hero-text {
+    text-align: left;
+    opacity: 0;
+    animation: fadeUp 1.5s 0.2s ease both;
+  }
+
+  .logo {
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1.3rem;
+    display: block;
+  }
+
+  .hero-text h1 {
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    color: #f5efe3;
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .hero-text .tagline {
+    margin-top: 1.2rem;
+    color: rgba(245, 239, 227, 0.78);
+    font-size: 1rem;
+    font-style: italic;
+    line-height: 1.9;
+    text-shadow: 0 1px 18px rgba(0, 0, 0, 0.55);
+  }
+
+  .hero-text .byline {
+    margin-top: 1.6rem;
+    font-family: 'Kalam', cursive;
+    font-size: 1.25rem;
+    color: #f0a08c;
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
+  }
+
+  .hero-text .rule {
+    width: 3rem;
+    height: 1px;
+    background: var(--kite);
+    opacity: 0.7;
+    margin: 1.8rem 0 0;
+  }
+
+  .hero-about {
+    text-align: center;
+    opacity: 0;
+    animation: fadeUp 1.5s 0.7s ease both;
+  }
+
+  /* ---------- पोलरॉइड / the polaroid card ---------- */
+  .portrait {
+    width: 13.5rem;
+    margin: 0 auto 1.5rem;
+    padding: 0.65rem 0.65rem 2.8rem;
+    background: linear-gradient(170deg, #fffdf8, #efe7d8);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+    transform: rotate(-2.2deg);
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+    position: relative;
+  }
+
+  .portrait:hover {
+    transform: rotate(0deg) scale(1.03);
+  }
+
+  .frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 5;
+    background: #e6ded2;
+  }
+
+  .frame :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: sepia(0.26) saturate(0.8) contrast(0.93) brightness(1.05);
+  }
+
+  /* काग़ज़ की चमक / paper sheen */
+  .frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(115deg, rgba(255, 255, 255, 0.2), transparent 42%),
+      radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(60, 45, 35, 0.28) 100%);
+  }
+
+  /* बारीक दाना / film grain */
+  .frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.15;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.5'/></svg>");
+  }
+
+  .datestamp {
+    position: absolute;
+    right: 1.05rem;
+    bottom: 3.15rem;
+    z-index: 3;
+    font-family: 'Courier New', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: #ff8a2b;
+    text-shadow: 0 0 5px rgba(255, 138, 43, 0.75);
+    opacity: 0.9;
+  }
+
+  .caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.75rem;
+    text-align: center;
+    font-family: 'Kalam', cursive;
+    font-size: 0.86rem;
+    color: #7b6a55;
+  }
+
+  .hero-about h3 {
+    font-size: 1.25rem;
+    font-weight: 400;
+    margin-bottom: 0.2rem;
+    color: #f5efe3;
+  }
+
+  .hero-about .role {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--kite-2);
+    margin-bottom: 1.1rem;
+  }
+
+  .hero-about .bio {
+    color: rgba(245, 239, 227, 0.72);
+    font-size: 0.95rem;
+    line-height: 1.95;
+    max-width: 24rem;
+    margin: 0 auto;
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
+  }
+
+  .hero-about .signature {
+    margin-top: 1.3rem;
+    font-family: 'Kalam', cursive;
+    font-size: 1.5rem;
+    color: var(--kite);
+    transform: rotate(-3deg);
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 1.4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    color: var(--ink-soft);
+    font-size: 1.25rem;
+    opacity: 0.6;
+    animation: float 2.6s ease-in-out infinite;
+  }
+
+  @media (max-width: 860px) {
+    .hero {
+      min-height: auto;
+    }
+
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      padding: 6rem 1.6rem 4rem;
+      text-align: center;
+    }
+
+    .hero-text {
+      text-align: center;
+    }
+
+    .logo {
+      margin: 0 auto 1.2rem;
+    }
+
+    .hero-text .rule {
+      margin: 1.8rem auto 0;
+    }
+
+    .portrait {
+      width: 12rem;
+    }
+
+    .scroll-cue {
+      display: none;
+    }
+  }
+</style>
