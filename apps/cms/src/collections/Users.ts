@@ -16,8 +16,9 @@ export const Users: CollectionConfig = {
   auth: true,
   access: {
     // नया खाता सिर्फ़ admin बना सकता है — वरना कोई भी खुद को जोड़ लेगा।
-    // Only admins create accounts. Without this, Payload allows the first
-    // route to self-registration and anyone could add themselves.
+    // Only admins create accounts, so nobody can sign themselves up. This does
+    // NOT block the very first account: Payload's create-first-user flow runs
+    // before any user exists and bypasses collection access by design.
     create: isAdmin,
     read: isAdminOrSelf,
     update: isAdminOrSelf,
