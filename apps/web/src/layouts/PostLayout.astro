@@ -107,28 +107,63 @@ const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
   /**
    * मीडिया हो तो पन्ना चौड़ा हो जाए / widen the page when there is a second column.
    *
-   * BaseLayout सब कुछ `.wrap` (40rem) में रखता है — पढ़ने के लिए यही सही चौड़ाई
-   * है, पर उसमें रचना और पट्टी दोनों नहीं आ सकतीं।
+   * BaseLayout सब कुछ `.wrap` (40rem) में रखता है — पढ़ने के लिए सही, पर उसमें
+   * रचना और पट्टी दोनों नहीं आतीं। इसलिए दो स्तंभ वाला हिस्सा उससे बाहर निकलकर
+   * बीच में बैठता है।
    *
-   * The site wraps content at 40rem, which is the right measure for reading and
-   * deliberately narrow. A 20rem rail cannot fit beside it, so a post with media
-   * steps outside that wrapper and re-centres itself at 58rem — the same width
-   * the gallery already uses, so this is not a new number on the page.
+   * The site wraps content at 40rem, which is right for reading a poem and
+   * deliberately narrow. A rail cannot fit beside it, so a post with media steps
+   * outside that wrapper and re-centres itself.
+   *
+   * ── चौड़ाई परदे के साथ बढ़ती है / the width follows the screen ────────────────
+   * एक तय चौड़ाई (58rem) बड़े परदे पर बीच में अटकी हुई लगती थी — दोनों तरफ़ बहुत
+   * ख़ाली जगह।
+   *
+   * A fixed 58rem looked stranded on a large monitor, with a wide empty margin
+   * either side. `min()` lets it grow with the viewport and stop at 82rem, which
+   * is where the poem column would start getting too wide to read comfortably —
+   * past roughly 50rem of Devanagari the eye loses the start of the next line.
    */
   .post__cols.has-media {
-    grid-template-columns: minmax(0, 1fr) 20rem;
+    grid-template-columns: minmax(0, 1fr) 23rem;
     align-items: start;
+    gap: 4rem;
 
-    width: min(58rem, calc(100vw - 3rem));
+    width: min(82rem, calc(100vw - 5rem));
     max-width: none;
     position: relative;
     left: 50%;
     transform: translateX(-50%);
   }
 
+  /**
+   * बीच के परदों पर थोड़ी कम जगह / tighter margins on mid-size screens.
+   * A laptop at ~1280px has no room to spare, so the gutters shrink and the
+   * rail gives back a little width before the layout stacks entirely.
+   */
+  @media (max-width: 84rem) {
+    .post__cols.has-media {
+      grid-template-columns: minmax(0, 1fr) 21rem;
+      gap: 3rem;
+      width: calc(100vw - 3rem);
+    }
+  }
+
   .post__body {
     /* लंबी पंक्ति grid को फैलाने न पाए / stop a long line blowing out the column */
     min-width: 0;
+    /**
+     * पंक्ति कितनी भी चौड़ी न हो जाए / cap the measure even when the column is wide.
+     *
+     * चौड़ा पन्ना अच्छा लगता है, चौड़ी पंक्ति नहीं — आँख अगली पंक्ति की शुरुआत
+     * खो देती है। बची हुई जगह रचना और पट्टी के बीच चली जाती है।
+     *
+     * A wide page is good; a wide line of text is not. Past roughly this width
+     * the eye loses its place returning to the start of the next line, which is
+     * worse in Devanagari where the shirorekha gives every line the same top
+     * edge. Any leftover width becomes gutter between the poem and the rail.
+     */
+    max-width: 52rem;
   }
 
   /* दो स्तंभ होने पर रचना बाएँ से शुरू हो, बीच से नहीं */
