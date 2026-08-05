@@ -97,6 +97,32 @@ CMS comes up with no content and no way to log in.
 before compression. Always re-measure with `npm run build:cms && npm run start
 --workspace @amber/cms` before concluding anything is slow.
 
+## Publishing a post does not put it on the site
+
+The site is static. `getStaticPaths` in `posts/[slug].astro` decides which post
+pages exist, and **Astro caches its result for the life of the dev server**,
+re-running it only when that file changes.
+
+So after publishing in the CMS you get a confusing split: the post appears on
+the homepage and `/posts` immediately (those call `getPosts()` per request), but
+its own page 404s. That is not a bug in the post — the page has not been
+created yet.
+
+```
+npm run refresh:web     # touches [slug].astro; paths recompute in ~2s
+```
+
+For production, a new post needs `npm run build` — there is no live rendering.
+Before deploying, wire a rebuild to publishing (a Payload `afterChange` hook on
+Posts hitting a deploy hook), or the author will publish into silence.
+
+**`export const prerender = false` does not fix this.** The site is
+`output: 'static'` with no adapter, so Astro has nowhere to render on demand and
+the export is ignored. Serving post pages live would mean adding an adapter and
+a Node server, and with the database ~300ms away that puts roughly 600ms on
+every reader's page load to save the author one rebuild — the wrong trade for a
+blog that is read far more often than it is written to.
+
 ## Poem autofill (Claude)
 
 The "कविता से भरिए" panel at the top of the post editor takes a pasted poem and

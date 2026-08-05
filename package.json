@@ -18,6 +18,7 @@
     "build:web": "npm run build --workspace @amber/web",
     "build:cms": "npm run build --workspace @amber/cms",
     "check": "npm run check --workspace @amber/web",
+    "refresh:web": "node -e \"const f='apps/web/src/pages/posts/[slug].astro',t=new Date();require('fs').utimesSync(f,t,t);console.log('touched '+f+' -- the dev server will recompute post paths in a second or two')\"",
     "payload": "npm run payload --workspace @amber/cms",
     "generate:types": "npm run generate:types --workspace @amber/cms"
   },

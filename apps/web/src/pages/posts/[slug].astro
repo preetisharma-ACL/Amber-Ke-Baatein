@@ -10,6 +10,25 @@ import { getPosts, type Post } from '../../utils/posts';
  * The body now arrives as HTML already rendered from the CMS's Lexical
  * document, where it used to be markdown that Astro rendered itself.
  */
+/**
+ * ⚠️ नई रचना छापने के बाद dev server दोबारा चलाना पड़ता है.
+ * A newly published post needs the dev server restarted before its page exists.
+ *
+ * Astro `getStaticPaths` का नतीजा dev server की पूरी उम्र के लिए रख लेता है —
+ * सिर्फ़ यह फ़ाइल बदलने पर दोबारा चलता है।
+ *
+ * Astro caches this function's result for the life of the dev server and only
+ * re-runs it when this file changes. The listing pages call getPosts() per
+ * request, so a new post shows up there immediately — but its own page 404s
+ * until the paths are recomputed. `npm run refresh:web` forces that.
+ *
+ * `export const prerender = false` does NOT fix this: the site is
+ * `output: 'static'` with no adapter, so Astro has nowhere to render a page on
+ * demand and the export is ignored. Making post pages live would mean adding an
+ * adapter and serving them from Node — which, with the database ~300ms away
+ * (see CLAUDE.md), would put roughly 600ms on every reader's page load to save
+ * the author one rebuild. Rebuilding on publish is the better trade.
+ */
 export async function getStaticPaths() {
   const posts = await getPosts();
   return posts.map((post) => ({
