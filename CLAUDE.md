@@ -125,6 +125,41 @@ a Node server, and with the database ~300ms away that puts roughly 600ms on
 every reader's page load to save the author one rebuild — the wrong trade for a
 blog that is read far more often than it is written to.
 
+## Likes, share and comments
+
+All three run **in the browser** against the CMS API, so the site stays fully
+static — no adapter, no server, and no per-reader database hit on page load. If
+the CMS is unreachable the poem still renders; only these degrade.
+
+| | Where | Notes |
+|---|---|---|
+| Like | `POST /api/posts/:slug/like` | Public. **Rate-limited 10/min per IP** in `endpoints/like-post.ts` |
+| Count | `GET /api/posts/:slug/likes` | Fetched on load — the built-in number is stale the moment anyone else taps |
+| Comments | `GET/POST /api/comments` | Public create; **pre-moderated** |
+| Share | none | WhatsApp, native share sheet, copy link — pure client |
+
+Things worth knowing before changing any of it:
+
+- **The like rate limit is in-memory.** It resets on restart and each instance
+  counts alone. Right for a personal blog; if likes ever matter, move the
+  counting into the database with a per-visitor row.
+- **`localStorage` is not the like control.** It only stops the same browser
+  double-tapping and seeing a confusing count. The real limit is the server's.
+- **Comments are approved before they appear**, enforced in the CMS. The form
+  says so explicitly — otherwise a reader assumes it broke and submits again.
+- **Never build comment HTML with `innerHTML`.** The list is assembled with
+  `textContent`; it is a stranger's input.
+- `authorEmail` is collected but **never returned by the public API** (verified).
+- The form has a honeypot field rather than a captcha — free for a human, and
+  most bots fill every input they find.
+- Comments query by **numeric post id**, not slug, so `Post.cmsId` exists
+  alongside `Post.id` (which stays the slug, because every URL is built on it).
+
+⚠️ **Do not test Devanagari input with `curl` on Windows** — the shell mangles
+it to `????` before the request is sent, which looks exactly like a database
+encoding bug. Post from Node with `fetch` instead; UTF-8 round-trips correctly
+(verified end to end).
+
 ## Poem autofill (Claude)
 
 The "कविता से भरिए" panel at the top of the post editor takes a pasted poem and

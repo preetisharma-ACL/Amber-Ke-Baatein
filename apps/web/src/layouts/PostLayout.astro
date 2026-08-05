@@ -1,5 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import Comments from '../components/Comments.astro';
+import PostActions from '../components/PostActions.astro';
 import type { Post } from '../utils/posts';
 
 interface Props {
@@ -23,9 +25,16 @@ const { title, date, category, excerpt } = post.data;
 
     {/* हर रचना के नीचे अपने आप — लिखने की ज़रूरत नहीं */}
     <div class="ornament">✦ ✦ ✦</div>
+
+    {/* पसंद और साझा / like and share — both run in the browser, see the component */}
+    <PostActions slug={post.id} title={title} />
+
     <div class="post-nav">
       <a class="btn" href="/posts">← सारी रचनाएँ</a>
     </div>
+
+    {/* बातचीत / comments, fetched and posted client-side against the CMS */}
+    <Comments postId={post.cmsId} />
   </article>
 </BaseLayout>
 

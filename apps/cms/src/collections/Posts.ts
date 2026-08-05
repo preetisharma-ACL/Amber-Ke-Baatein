@@ -1,6 +1,7 @@
 import type { Access, CollectionConfig } from 'payload'
 
 import { isAuthenticated } from '../access'
+import { getLikes, likePost } from '../endpoints/like-post'
 import { slugField } from '../fields/slug'
 import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate-site'
 
@@ -59,6 +60,8 @@ export const Posts: CollectionConfig = {
     afterChange: [revalidateAfterChange],
     afterDelete: [revalidateAfterDelete],
   },
+  // /api/posts/:slug/like और /likes — साइट का पसंद वाला बटन इन्हें बुलाता है.
+  endpoints: [likePost, getLikes],
   fields: [
     {
       /**

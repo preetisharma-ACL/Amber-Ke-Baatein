@@ -32,6 +32,15 @@ export interface PostData {
 export interface Post {
   /** पते वाला हिस्सा / the slug, used as /posts/<id>. */
   id: string;
+  /**
+   * CMS का असली अंक वाला id / the numeric id the CMS uses.
+   *
+   * टिप्पणियाँ इसी से जुड़ी हैं — slug से नहीं.
+   * Comments are related to a post by this numeric id, not by slug, so the
+   * browser needs it to fetch and post comments. The `id` field above stays the
+   * slug, because every component and every URL is built on it.
+   */
+  cmsId: number;
   data: PostData;
   /** रचना का शरीर, HTML में / the body, already rendered from Lexical. */
   html: string;
@@ -42,6 +51,7 @@ interface CmsCategory {
 }
 
 interface CmsPost {
+  id: number;
   slug: string;
   title: string;
   excerpt: string;
@@ -99,6 +109,7 @@ async function fetchPosts(): Promise<Post[]> {
 
   return body.docs.map((doc) => ({
     id: doc.slug,
+    cmsId: doc.id,
     data: {
       date: doc.displayDate,
       // depth=1 से category पूरी आती है; कभी सिर्फ़ id आए तो खाली रखिए.

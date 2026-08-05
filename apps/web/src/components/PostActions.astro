@@ -1,0 +1,165 @@
+---
+/**
+ * पसंद और साझा / like and share, under every रचना.
+ *
+ * ── साइट static है, इसलिए यह सब browser में होता है ──────────────────────────
+ * The page is built ahead of time, so the like count baked into the HTML is
+ * stale the moment anyone else taps. Everything here runs in the browser
+ * against the CMS API: the count is fetched on load, and a tap POSTs.
+ *
+ * That keeps the site fully static — no server, no per-reader database hit on
+ * page load, and the poem still renders instantly if any of this fails.
+ */
+interface Props {
+  slug: string;
+  title: string;
+}
+
+const { slug, title } = Astro.props;
+
+/** browser को यही पता चाहिए / the CMS origin the browser will call. */
+const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
+---
+
+<div class="post-actions" data-slug={slug} data-cms={cmsUrl} data-title={title}>
+  <button class="act act--like" type="button" aria-pressed="false" disabled>
+    <span class="act__icon" aria-hidden="true">♥</span>
+    <span class="act__label">पसंद</span>
+    <span class="act__count" data-like-count>—</span>
+  </button>
+
+  <div class="act__share">
+    <span class="act__share-label">साझा कीजिए</span>
+
+    <button class="act act--icon" type="button" data-share="native" hidden title="साझा कीजिए">
+      <span aria-hidden="true">⤴</span><span class="sr-only">साझा कीजिए</span>
+    </button>
+
+    <a class="act act--icon" data-share="whatsapp" target="_blank" rel="noopener noreferrer"
+       href="#" title="WhatsApp पर भेजिए">
+      <span aria-hidden="true">✆</span><span class="sr-only">WhatsApp पर भेजिए</span>
+    </a>
+
+    <button class="act act--icon" type="button" data-share="copy" title="लिंक कॉपी कीजिए">
+      <span aria-hidden="true">⧉</span><span class="sr-only">लिंक कॉपी कीजिए</span>
+    </button>
+  </div>
+
+  <p class="act__note" data-note hidden></p>
+</div>
+
+<script>
+  const box = document.querySelector<HTMLElement>('.post-actions');
+
+  if (box) {
+    const slug = box.dataset.slug!;
+    const cms = box.dataset.cms!;
+    const title = box.dataset.title ?? '';
+    const url = window.location.href;
+
+    const likeBtn = box.querySelector<HTMLButtonElement>('.act--like')!;
+    const countEl = box.querySelector<HTMLElement>('[data-like-count]')!;
+    const note = box.querySelector<HTMLElement>('[data-note]')!;
+
+    const say = (text: string) => {
+      note.textContent = text;
+      note.hidden = false;
+      window.setTimeout(() => (note.hidden = true), 4000);
+    };
+
+    /* ── पसंद / likes ───────────────────────────────────────────────────────
+       localStorage सिर्फ़ पाठक की सुविधा है — असली रोक CMS की तरफ़ है।
+       The stored flag only stops the same browser double-tapping and showing a
+       confusing count; it is not a control. The real per-IP limit is server
+       side, because anything in the browser can be cleared or bypassed. */
+    const likedKey = `amber:liked:${slug}`;
+    let liked = false;
+    try {
+      liked = window.localStorage.getItem(likedKey) === '1';
+    } catch {
+      /* private mode / storage blocked — treat as not-yet-liked */
+    }
+
+    const paint = (n: number | null) => {
+      countEl.textContent = n === null ? '—' : String(n);
+      likeBtn.classList.toggle('is-liked', liked);
+      likeBtn.setAttribute('aria-pressed', String(liked));
+      likeBtn.disabled = liked;
+    };
+
+    paint(null);
+
+    // ताज़ा गिनती / fetch the live count; the built-in number is always stale.
+    fetch(`${cms}/api/posts/${encodeURIComponent(slug)}/likes`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && typeof d.likes === 'number') paint(d.likes);
+        likeBtn.disabled = liked;
+      })
+      .catch(() => {
+        // CMS बंद हो तो बटन चुपचाप बेकार रहे, पन्ना न टूटे.
+        // If the CMS is unreachable the poem must still read fine.
+        countEl.textContent = '—';
+      });
+
+    likeBtn.addEventListener('click', async () => {
+      if (liked) return;
+      likeBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${cms}/api/posts/${encodeURIComponent(slug)}/like`, {
+          method: 'POST',
+        });
+        if (res.status === 429) {
+          say('थोड़ा रुककर कोशिश कीजिए।');
+          likeBtn.disabled = false;
+          return;
+        }
+        if (!res.ok) throw new Error(String(res.status));
+
+        const data = await res.json();
+        liked = true;
+        try {
+          window.localStorage.setItem(likedKey, '1');
+        } catch {
+          /* storage blocked — the like still counted on the server */
+        }
+        paint(typeof data.likes === 'number' ? data.likes : null);
+      } catch {
+        say('अभी पसंद दर्ज नहीं हो पाई — बाद में कोशिश कीजिए।');
+        likeBtn.disabled = false;
+      }
+    });
+
+    /* ── साझा / share ───────────────────────────────────────────────────────
+       WhatsApp सबसे पहले — हिन्दी पाठकों के बीच सबसे ज़्यादा यही चलता है।
+       WhatsApp is listed first deliberately: for this audience it is where a
+       poem actually gets passed around. */
+    const shareText = title ? `${title} — अम्बर की बातें` : 'अम्बर की बातें';
+
+    const wa = box.querySelector<HTMLAnchorElement>('[data-share="whatsapp"]');
+    if (wa) wa.href = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${url}`)}`;
+
+    const nativeBtn = box.querySelector<HTMLButtonElement>('[data-share="native"]');
+    if (nativeBtn && typeof navigator.share === 'function') {
+      nativeBtn.hidden = false;
+      nativeBtn.addEventListener('click', () => {
+        navigator.share({ title: shareText, url }).catch(() => {
+          /* the reader dismissed the sheet — not an error */
+        });
+      });
+    }
+
+    box.querySelector<HTMLButtonElement>('[data-share="copy"]')?.addEventListener(
+      'click',
+      async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          say('लिंक कॉपी हो गया।');
+        } catch {
+          say(url);
+        }
+      },
+    );
+  }
+</script>

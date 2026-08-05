@@ -1,0 +1,177 @@
+---
+/**
+ * टिप्पणियाँ / reader comments.
+ *
+ * ── सब कुछ browser में / entirely client-side ────────────────────────────────
+ * The page is static, so comments are fetched and posted from the browser
+ * against the CMS API. A comment written a minute ago must appear without the
+ * site being rebuilt, which rules out doing this at build time.
+ *
+ * ── पहले स्वीकृति, फिर प्रकाशन / approved before published ────────────────────
+ * नई टिप्पणी सीधे नहीं दिखती — पहले admin में स्वीकृत होती है।
+ * A new comment lands as `pending` and the public API only ever returns
+ * `approved` ones. That is enforced in the CMS (field-level access plus a
+ * beforeValidate hook), not here — the form just has to tell the reader
+ * honestly that their words will not appear immediately, or they will assume
+ * it broke and submit again.
+ */
+interface Props {
+  postId: number;
+}
+
+const { postId } = Astro.props;
+const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
+---
+
+<section class="comments" data-post={postId} data-cms={cmsUrl} aria-labelledby="comments-heading">
+  <h3 id="comments-heading" class="comments__heading">बातचीत</h3>
+
+  <div class="comments__list" data-list>
+    <p class="comments__empty" data-loading>टिप्पणियाँ आ रही हैं…</p>
+  </div>
+
+  <form class="comments__form" data-form novalidate>
+    <p class="comments__note">
+      आपकी टिप्पणी पढ़ने के बाद ही साइट पर दिखेगी — इसलिए तुरंत न दिखे तो घबराइए मत।
+    </p>
+
+    <div class="comments__row">
+      <label class="comments__field">
+        <span>नाम <em>*</em></span>
+        <input type="text" name="authorName" maxlength="80" required autocomplete="name" />
+      </label>
+
+      <label class="comments__field">
+        <span>ईमेल <small>(वैकल्पिक, दिखेगा नहीं)</small></span>
+        <input type="email" name="authorEmail" maxlength="120" autocomplete="email" />
+      </label>
+    </div>
+
+    <label class="comments__field">
+      <span>आपकी बात <em>*</em></span>
+      <textarea name="body" rows="4" maxlength="2000" required></textarea>
+    </label>
+
+    {/*
+      मधु का जाल / honeypot. Bots fill every field they find; a real reader
+      never sees this one. Cheap, and it costs a human nothing — unlike a
+      captcha, which would be one more barrier in front of someone who just
+      wants to say they liked a poem.
+    */}
+    <div class="comments__trap" aria-hidden="true">
+      <label>वेबसाइट<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+    </div>
+
+    <div class="comments__actions">
+      <button class="btn" type="submit">भेजिए</button>
+      <span class="comments__status" data-status role="status"></span>
+    </div>
+  </form>
+</section>
+
+<script>
+  const box = document.querySelector<HTMLElement>('.comments');
+
+  if (box) {
+    const postId = Number(box.dataset.post);
+    const cms = box.dataset.cms!;
+    const list = box.querySelector<HTMLElement>('[data-list]')!;
+    const form = box.querySelector<HTMLFormElement>('[data-form]')!;
+    const status = box.querySelector<HTMLElement>('[data-status]')!;
+
+    /** पाठक का लिखा हुआ कभी सीधे HTML न बने / never build HTML from reader text. */
+    const el = (tag: string, cls: string, text?: string) => {
+      const node = document.createElement(tag);
+      node.className = cls;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+
+    const formatDate = (iso: string) => {
+      const months = ['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'];
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '' : `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    };
+
+    const render = (docs: Array<{ authorName?: string; body?: string; createdAt?: string }>) => {
+      list.replaceChildren();
+
+      if (docs.length === 0) {
+        list.append(el('p', 'comments__empty', 'अभी कोई बात नहीं हुई। पहली आप कीजिए।'));
+        return;
+      }
+
+      for (const c of docs) {
+        const item = el('article', 'comment');
+        const head = el('div', 'comment__head');
+        head.append(el('span', 'comment__name', c.authorName ?? 'कोई'));
+        if (c.createdAt) head.append(el('span', 'comment__date', formatDate(c.createdAt)));
+        item.append(head);
+        // textContent, not innerHTML — this is a stranger's input.
+        item.append(el('p', 'comment__body', c.body ?? ''));
+        list.append(item);
+      }
+    };
+
+    const load = async () => {
+      try {
+        const url =
+          `${cms}/api/comments?depth=0&limit=200&sort=createdAt` +
+          `&where[post][equals]=${postId}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        render(Array.isArray(data.docs) ? data.docs : []);
+      } catch {
+        list.replaceChildren(
+          el('p', 'comments__empty', 'टिप्पणियाँ अभी नहीं आ पाईं।'),
+        );
+      }
+    };
+
+    void load();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+
+      // जाल भरा है = bot / honeypot filled: drop it, and say nothing useful.
+      if (String(data.get('website') ?? '').trim() !== '') return;
+
+      const authorName = String(data.get('authorName') ?? '').trim();
+      const body = String(data.get('body') ?? '').trim();
+
+      if (!authorName || !body) {
+        status.textContent = 'नाम और बात — दोनों ज़रूरी हैं।';
+        return;
+      }
+
+      const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      submit.disabled = true;
+      status.textContent = 'भेजा जा रहा है…';
+
+      try {
+        const authorEmail = String(data.get('authorEmail') ?? '').trim();
+        const res = await fetch(`${cms}/api/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            post: postId,
+            authorName,
+            body,
+            ...(authorEmail ? { authorEmail } : {}),
+          }),
+        });
+
+        if (!res.ok) throw new Error(String(res.status));
+
+        form.reset();
+        status.textContent = 'धन्यवाद — पढ़ने के बाद आपकी बात यहाँ दिख जाएगी।';
+      } catch {
+        status.textContent = 'अभी भेजी नहीं जा सकी — थोड़ी देर बाद कोशिश कीजिए।';
+      } finally {
+        submit.disabled = false;
+      }
+    });
+  }
+</script>
