@@ -116,6 +116,45 @@ export const Posts: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'audio',
+      type: 'upload',
+      relationTo: 'audio',
+      label: 'आवाज़ / Audio (वैकल्पिक)',
+      admin: {
+        position: 'sidebar',
+        description: 'रचना का पाठ। रचना के बग़ल में सुनने का बटन दिखेगा।',
+      },
+    },
+    {
+      /**
+       * एक ही खाना, दोनों के लिए / one field for both platforms.
+       *
+       * अलग-अलग खाने रखने का मतलब होता कि निदेशक जी को चुनना पड़ता कि यह लिंक
+       * किस तरह का है — जबकि लिंक ख़ुद बता देता है।
+       *
+       * A single URL field rather than one per platform: asking the author to
+       * classify a link they just copied is asking them to do work the code can
+       * do by looking at it. The site detects YouTube vs Instagram from the URL
+       * itself — see apps/web/src/utils/embeds.ts.
+       */
+      name: 'videoUrl',
+      type: 'text',
+      label: 'वीडियो लिंक / Video link (वैकल्पिक)',
+      admin: {
+        position: 'sidebar',
+        description:
+          'YouTube या Instagram reel का लिंक चिपकाइए — जैसा है वैसा ही। रचना के बग़ल में वीडियो दिखेगा।',
+      },
+      validate: (value: string | null | undefined) => {
+        if (!value) return true // वैकल्पिक है / optional
+        const ok =
+          /(?:youtube\.com|youtu\.be)/i.test(value) || /instagram\.com/i.test(value)
+        return ok
+          ? true
+          : 'सिर्फ़ YouTube या Instagram का लिंक चलेगा / only a YouTube or Instagram link works here.'
+      },
+    },
+    {
       /**
        * जैसा लिखा है वैसा ही दिखता है — "1 अगस्त 2026".
        *

@@ -44,6 +44,17 @@ export interface Post {
   data: PostData;
   /** रचना का शरीर, HTML में / the body, already rendered from Lexical. */
   html: string;
+  /**
+   * रचना के साथ सुनने-देखने की चीज़ें / optional media shown beside the poem.
+   * Both are optional and independent: a post may have neither, either, or both.
+   */
+  media: {
+    /** Cloudinary पर रखी हुई आवाज़ / the recitation, if one was uploaded. */
+    audioUrl?: string;
+    audioTitle?: string;
+    /** जैसा चिपकाया गया वैसा ही — पहचान साइट पर होती है, CMS में नहीं. */
+    videoUrl?: string;
+  };
 }
 
 interface CmsCategory {
@@ -60,6 +71,8 @@ interface CmsPost {
   order: number;
   category: CmsCategory | number | null;
   content: LexicalRoot | null;
+  audio?: { url?: string; title?: string } | number | null;
+  videoUrl?: string | null;
 }
 
 interface CmsResponse {
@@ -120,6 +133,16 @@ async function fetchPosts(): Promise<Post[]> {
       order: doc.order ?? 0,
     },
     html: lexicalToHtml(doc.content),
+    media: {
+      // depth=1 से audio पूरा आता है; सिर्फ़ id आए तो चुपचाप छोड़ दीजिए.
+      // At depth=1 the upload is populated; if it ever arrives as a bare id
+      // there is nothing to play, so it is simply absent rather than broken.
+      audioUrl:
+        doc.audio && typeof doc.audio === 'object' ? (doc.audio.url ?? undefined) : undefined,
+      audioTitle:
+        doc.audio && typeof doc.audio === 'object' ? (doc.audio.title ?? undefined) : undefined,
+      videoUrl: doc.videoUrl ?? undefined,
+    },
   }));
 }
 

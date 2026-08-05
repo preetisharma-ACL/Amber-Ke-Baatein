@@ -2,6 +2,8 @@
 import BaseLayout from './BaseLayout.astro';
 import Comments from '../components/Comments.astro';
 import PostActions from '../components/PostActions.astro';
+import PostMedia from '../components/PostMedia.astro';
+import { parseVideoUrl } from '../utils/embeds';
 import type { Post } from '../utils/posts';
 
 interface Props {
@@ -10,30 +12,55 @@ interface Props {
 
 const { post } = Astro.props;
 const { title, date, category, excerpt } = post.data;
+const { audioUrl, audioTitle, videoUrl } = post.media;
+
+/**
+ * पट्टी तभी बने जब उसमें कुछ हो / only lay out two columns when there is a
+ * second column to lay out.
+ *
+ * The video URL is parsed here as well as in PostMedia because a link the
+ * parser rejects must not widen the layout — an unrecognised URL should leave
+ * the poem full-width rather than sit beside an empty rail.
+ */
+const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
 ---
 
 <BaseLayout title={title} description={excerpt}>
   <article class="post">
-    <div class="date">{date} · {category}</div>
-    <h2>{title}</h2>
-    <div class="title-rule"></div>
+    {/* शीर्षक पूरी चौड़ाई में — रचना और मीडिया उसके नीचे बँटते हैं */}
+    <header class="post__head">
+      <div class="date">{date} · {category}</div>
+      <h2>{title}</h2>
+      <div class="title-rule"></div>
+    </header>
 
-    {/* रचना का शरीर — .post-body की शैली global.css में है */}
-    <div class="post-body">
-      <slot />
+    <div class:list={['post__cols', { 'has-media': hasMedia }]}>
+      {/*
+        रचना बाईं ओर / the poem on the left.
+        `min-width: 0` सँकरी होने से बचाता है — बिना इसके लंबी पंक्तियाँ grid को
+        चौड़ा कर देती हैं. Without it a long unbroken line of verse forces the
+        grid column wider than its share and the rail gets squeezed.
+      */}
+      <div class="post__body">
+        <div class="post-body">
+          <slot />
+        </div>
+      </div>
+
+      {hasMedia && (
+        <PostMedia audioUrl={audioUrl} audioTitle={audioTitle} videoUrl={videoUrl} title={title} />
+      )}
     </div>
 
-    {/* हर रचना के नीचे अपने आप — लिखने की ज़रूरत नहीं */}
+    {/* नीचे का हिस्सा फिर पूरी चौड़ाई में / everything below spans both columns */}
     <div class="ornament">✦ ✦ ✦</div>
 
-    {/* पसंद और साझा / like and share — both run in the browser, see the component */}
     <PostActions slug={post.id} title={title} />
 
     <div class="post-nav">
       <a class="btn" href="/posts">← सारी रचनाएँ</a>
     </div>
 
-    {/* बातचीत / comments, fetched and posted client-side against the CMS */}
     <Comments postId={post.cmsId} />
   </article>
 </BaseLayout>
@@ -62,9 +89,69 @@ const { title, date, category, excerpt } = post.data;
     max-width: 22ch;
   }
 
+  /**
+   * एक स्तंभ या दो / one column, or two when there is media.
+   *
+   * बिना मीडिया वाली रचना पहले जैसी ही दिखती है — यही सबसे ज़रूरी है, क्योंकि
+   * ज़्यादातर रचनाओं के साथ कुछ नहीं होगा।
+   *
+   * A post with no media renders exactly as it always did. That matters more
+   * than the two-column case: most posts will be text alone, and they must not
+   * pay for a feature they do not use.
+   */
+  .post__cols {
+    display: grid;
+    gap: 3rem;
+  }
+
+  /**
+   * मीडिया हो तो पन्ना चौड़ा हो जाए / widen the page when there is a second column.
+   *
+   * BaseLayout सब कुछ `.wrap` (40rem) में रखता है — पढ़ने के लिए यही सही चौड़ाई
+   * है, पर उसमें रचना और पट्टी दोनों नहीं आ सकतीं।
+   *
+   * The site wraps content at 40rem, which is the right measure for reading and
+   * deliberately narrow. A 20rem rail cannot fit beside it, so a post with media
+   * steps outside that wrapper and re-centres itself at 58rem — the same width
+   * the gallery already uses, so this is not a new number on the page.
+   */
+  .post__cols.has-media {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+
+    width: min(58rem, calc(100vw - 3rem));
+    max-width: none;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .post__body {
+    /* लंबी पंक्ति grid को फैलाने न पाए / stop a long line blowing out the column */
+    min-width: 0;
+  }
+
+  /* दो स्तंभ होने पर रचना बाएँ से शुरू हो, बीच से नहीं */
+  .post__cols.has-media .post__body :global(.post-body) {
+    text-align: start;
+  }
+
   .post-nav {
     display: flex;
     justify-content: center;
     padding-top: 0.5rem;
+  }
+
+  /**
+   * छोटे परदे पर एक के नीचे एक / stack on narrow screens.
+   * 68rem क्योंकि 20rem की पट्टी + पढ़ने लायक़ चौड़ाई इससे कम में नहीं आती.
+   * Below this width the rail and a readable measure cannot coexist, so the
+   * media moves under the poem rather than squeezing it.
+   */
+  @media (max-width: 68rem) {
+    .post__cols.has-media {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2.5rem;
+    }
   }
 </style>

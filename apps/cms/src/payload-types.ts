@@ -70,6 +70,7 @@ export interface Config {
     posts: Post;
     categories: Category;
     gallery: Gallery;
+    audio: Audio;
     media: Media;
     comments: Comment;
     users: User;
@@ -83,6 +84,7 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
+    audio: AudioSelect<false> | AudioSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -160,6 +162,14 @@ export interface Post {
   category: number | Category;
   coverImage?: (number | null) | Media;
   /**
+   * रचना का पाठ। रचना के बग़ल में सुनने का बटन दिखेगा।
+   */
+  audio?: (number | null) | Audio;
+  /**
+   * YouTube या Instagram reel का लिंक चिपकाइए — जैसा है वैसा ही। रचना के बग़ल में वीडियो दिखेगा।
+   */
+  videoUrl?: string | null;
+  /**
    * हिन्दी में लिखिए — जैसे "1 अगस्त 2026"। जैसा लिखेंगे वैसा ही दिखेगा।
    */
   displayDate: string;
@@ -212,6 +222,30 @@ export interface Media {
    * तस्वीर के नीचे दिखने वाली पंक्ति। खाली छोड़ सकते हैं।
    */
   caption?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * रचना पढ़कर रिकॉर्ड की हुई फ़ाइल — mp3 या m4a।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audio".
+ */
+export interface Audio {
+  id: number;
+  /**
+   * सिर्फ़ पहचानने के लिए — जैसे "कुछ पाया — पाठ"।
+   */
+  title: string;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -339,6 +373,10 @@ export interface PayloadLockedDocument {
         value: number | Gallery;
       } | null)
     | ({
+        relationTo: 'audio';
+        value: number | Audio;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -403,6 +441,8 @@ export interface PostsSelect<T extends boolean = true> {
   content?: T;
   category?: T;
   coverImage?: T;
+  audio?: T;
+  videoUrl?: T;
   displayDate?: T;
   publishedAt?: T;
   order?: T;
@@ -431,6 +471,24 @@ export interface GallerySelect<T extends boolean = true> {
   caption?: T;
   alt?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audio_select".
+ */
+export interface AudioSelect<T extends boolean = true> {
+  title?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

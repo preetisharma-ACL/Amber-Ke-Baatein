@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { VerseBlock } from './blocks/Verse'
+import { Audio } from './collections/Audio'
 import { Categories } from './collections/Categories'
 import { Gallery } from './collections/Gallery'
 import { draftFromPoem } from './endpoints/draft-from-poem'
@@ -74,7 +75,7 @@ export default buildConfig({
    * depth. Nothing relies on the old default of 2.
    */
   defaultDepth: 0,
-  collections: [Posts, Categories, Gallery, Media, Comments, Users],
+  collections: [Posts, Categories, Gallery, Audio, Media, Comments, Users],
 
   // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
   // reachable at POST /api/draft-from-poem. Staff-only; see the handler.
@@ -141,6 +142,7 @@ export default buildConfig({
     cloudStoragePlugin({
       collections: {
         gallery: { adapter: cloudinaryAdapter() },
+        audio: { adapter: cloudinaryAdapter() },
         media: { adapter: cloudinaryAdapter() },
       },
     }),

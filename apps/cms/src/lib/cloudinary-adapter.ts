@@ -73,6 +73,24 @@ const publicIdFor = (collectionSlug: string, filename: string, prefix?: string) 
   return `${folderFor(collectionSlug, prefix)}/${withoutExt}`
 }
 
+const AUDIO_VIDEO_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|flac|mp4|mov|webm|m4v)$/i
+
+/**
+ * Cloudinary में आवाज़ भी "video" के खाने में जाती है.
+ *
+ * Cloudinary files audio under `resource_type: 'video'` — there is no separate
+ * audio type. Getting this wrong is not a soft failure: an mp3 uploaded as
+ * `image` is rejected, and a delete issued against the wrong type silently
+ * leaves the file on the account while removing the database row.
+ *
+ * Derived from the filename because `handleDelete` and `generateURL` are given
+ * a filename but no mime type.
+ */
+const resourceTypeFor = (filename: string, mimeType?: string): 'image' | 'video' => {
+  if (mimeType?.startsWith('audio/') || mimeType?.startsWith('video/')) return 'video'
+  return AUDIO_VIDEO_EXT.test(filename) ? 'video' : 'image'
+}
+
 export const cloudinaryAdapter =
   (): Adapter =>
   ({ collection, prefix }): GeneratedAdapter => ({
@@ -103,7 +121,7 @@ export const cloudinaryAdapter =
             // re-upload, so the URL stored in the database stays valid.
             overwrite: true,
             invalidate: true,
-            resource_type: 'image',
+            resource_type: resourceTypeFor(file.filename, file.mimeType),
           },
           (error) => (error ? reject(error) : resolve()),
         )
@@ -116,12 +134,16 @@ export const cloudinaryAdapter =
       // पहले ही हट चुकी हो तो शिकायत नहीं / a missing file is not an error:
       // Cloudinary returns "not found" rather than throwing, and a delete that
       // fails here would otherwise block removing the row.
-      await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true })
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceTypeFor(filename),
+        invalidate: true,
+      })
     },
 
     generateURL: ({ filename, prefix: urlPrefix }) =>
       cloudinary.url(publicIdFor(collection.slug, filename, urlPrefix), {
         secure: true,
+        resource_type: resourceTypeFor(filename),
         // कोई transformation नहीं — साइट अपनी ज़रूरत के हिसाब से जोड़ती है.
         // No transformation baked in. The site inserts what it needs into the
         // URL (see apps/web/src/utils/gallery.ts), so one stored URL serves
@@ -140,6 +162,7 @@ export const cloudinaryAdapter =
       Response.redirect(
         cloudinary.url(publicIdFor(params.collection, params.filename, params.prefix), {
           secure: true,
+          resource_type: resourceTypeFor(params.filename),
         }),
         302,
       ),

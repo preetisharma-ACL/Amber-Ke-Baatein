@@ -125,6 +125,39 @@ a Node server, and with the database ~300ms away that puts roughly 600ms on
 every reader's page load to save the author one rebuild — the wrong trade for a
 blog that is read far more often than it is written to.
 
+## Audio and video on a post
+
+A post can carry a recitation and one video. Both optional, both independent.
+
+| | Field | Stored |
+|---|---|---|
+| आवाज़ | `audio` → the `audio` collection | Cloudinary |
+| वीडियो | `videoUrl` — one text field | just the URL |
+
+- **One URL field, not one per platform.** `utils/embeds.ts` works out YouTube
+  vs Instagram from the link itself, so the author pastes what they copied
+  rather than classifying it. It handles `watch?v=`, `youtu.be`, `/shorts/`,
+  `m.youtube.com`, `/reel/`, `/reels/`, `/p/`, and strips tracking params.
+- **An unrecognised URL renders nothing** and the layout stays single-column —
+  the URL is parsed in `PostLayout` too, so a bad link never widens the page
+  into an empty rail.
+- **Cloudinary files audio under `resource_type: 'video'`.** There is no audio
+  type. `lib/cloudinary-adapter.ts` derives it from the filename, because
+  `handleDelete`/`generateURL` get a filename but no mime type — get it wrong
+  and deletes silently leave the file on the account.
+- **The two platforms keep different aspect ratios** — 16:9 for YouTube, 9:16
+  for a reel. Forcing one on both letterboxes the other into a strip.
+- The rail is **sticky above 68rem only**; when the layout stacks, sticky would
+  pin a video over the poem.
+- **A post with no media renders exactly as before**, single column at the site's
+  40rem measure. Only a post *with* media widens to 58rem — most posts are text
+  alone and must not pay for a feature they do not use.
+
+⚠️ When testing this, grep the **markup**, not the page: Astro inlines the
+scoped CSS, so `has-media` and `media-rail` appear in every post's `<style>`
+block whether or not the post has media. Strip `<style>` first or you will
+diagnose a bug that is not there.
+
 ## Likes, share and comments
 
 All three run **in the browser** against the CMS API, so the site stays fully
