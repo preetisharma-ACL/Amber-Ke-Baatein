@@ -24,7 +24,12 @@ const raw = await fs.readFile(
   path.resolve(dirname, '../../../web/src/content/posts/kuch-paya-kuch-chhoot-gaya.md'),
   'utf8',
 )
-const poem = raw
+// शीर्षक सबसे ऊपर, जैसे निदेशक जी चिपकाते / title line first, as a real paste has.
+// Without it the piece is untitled and Claude must invent one from the text —
+// a different (and much weaker) test of the transliteration this exists for.
+const title = /title:\s*'([^']+)'/.exec(raw)?.[1] ?? ''
+
+const poem = (title ? `${title}\n\n` : '') + raw
   .replace(/^---[\s\S]*?---\n/, '') // drop frontmatter
   .replace(/<br\s*\/?>/gi, '\n')
   .replace(/<\/div>|<\/p>/gi, '\n')
@@ -70,9 +75,16 @@ console.log(`  segments          : ${JSON.stringify(data.summary)}`)
 
 console.log('\n── slug accuracy ──────────────────────────────────────')
 const expectedSlug = 'kuch-paya-kuch-chhoot-gaya'
-console.log(`  hand-picked : ${expectedSlug}`)
-console.log(`  Claude      : ${data.slug}`)
-console.log(`  ${data.slug === expectedSlug ? 'EXACT MATCH' : 'differs (readable roman is still fine)'}`)
+/**
+ * -2 हटाकर तुलना कीजिए / strip the uniqueness suffix before comparing.
+ * The post being pasted already exists, so the endpoint correctly appends -2.
+ * Comparing the raw string calls a perfect transliteration a miss.
+ */
+const bare = String(data.slug).replace(/-\d+$/, '')
+console.log(`  hand-picked      : ${expectedSlug}`)
+console.log(`  Claude           : ${bare}`)
+console.log(`  stored as        : ${data.slug}${bare !== data.slug ? '  (suffix added — slug already taken)' : ''}`)
+console.log(`  ${bare === expectedSlug ? 'EXACT MATCH' : 'differs — still a readable roman slug, just a different choice'}`)
 
 console.log('\n── rendered body ──────────────────────────────────────')
 const html = lexicalToHtml(data.content as never)

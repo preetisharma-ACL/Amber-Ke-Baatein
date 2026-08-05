@@ -143,7 +143,19 @@ export const draftFromPoem: Endpoint = {
     let draft: z.infer<typeof DraftSchema> | null = null
     try {
       const message = await client.messages.parse({
-        model: 'claude-opus-5',
+        /**
+         * Sonnet 5 — जान-बूझकर, आपके कहने पर.
+         *
+         * Chosen deliberately over claude-opus-5: at the time this was wired up
+         * Opus 5 was returning 529 overloaded across repeated attempts, and this
+         * job — transliterating a title and classifying which lines are verse —
+         * is well within Sonnet 5's range. It is also cheaper and faster, which
+         * matters when someone is watching the spinner.
+         *
+         * Opus 5 पर लौटना हो तो सिर्फ़ यह पंक्ति बदलिए।
+         * To move back, change this one line; nothing else depends on the model.
+         */
+        model: 'claude-sonnet-5',
         max_tokens: 16000,
         output_config: {
           // भरने का काम गहरे विचार का नहीं — medium यहाँ काफ़ी है और तेज़ भी.
