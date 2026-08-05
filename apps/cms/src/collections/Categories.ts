@@ -14,10 +14,11 @@ import { slugField } from '../fields/slug'
  */
 export const Categories: CollectionConfig = {
   slug: 'categories',
+  labels: { singular: 'श्रेणी / Category', plural: 'श्रेणियाँ / Categories' },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug'],
-    group: 'सामग्री',
+    group: 'सामग्री / Content',
   },
   access: {
     read: isPublic,
@@ -31,7 +32,7 @@ export const Categories: CollectionConfig = {
       type: 'text',
       required: true,
       unique: true,
-      label: 'नाम',
+      label: 'नाम / Name',
       admin: {
         description: 'जैसे: संस्मरण, कविता, मार्गदर्शन',
       },
@@ -40,7 +41,7 @@ export const Categories: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      label: 'परिचय (वैकल्पिक)',
+      label: 'परिचय / Description (वैकल्पिक)',
       admin: {
         description: 'श्रेणी के पन्ने पर ऊपर दिखेगा।',
       },

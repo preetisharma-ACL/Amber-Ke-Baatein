@@ -1,0 +1,364 @@
+/* ═════════════════════════════════════════════════════════════════════════════
+   अम्बर की बातें — admin panel की शैली / admin panel theme
+
+   साइट और CMS एक ही रंगों में / the CMS borrows the site's own palette
+   (apps/web/src/styles/global.css) so the admin feels like the same product
+   rather than a generic dashboard bolted on beside it:
+
+     --kite   #e0654c   terracotta, the brand accent
+     --kite-2 #8fb0bc   muted slate-blue, the secondary
+     --paper  #161412   warm near-black
+     --ink    #ece4d6   warm cream
+
+   ── यह variables क्यों बदलता है, class नहीं ────────────────────────────────
+   Payload builds every component on a neutral ramp (--color-base-0 … -1000)
+   and maps --theme-elevation-* onto it, inverting the mapping for dark mode.
+   Re-tinting that ramp restyles the entire panel in one place and keeps
+   working when Payload renames an internal class. Component rules below are
+   kept few and deliberate for that reason.
+
+   Payload's own CSS lives in `@layer payload`. This file is unlayered, so it
+   wins on the cascade without a single !important.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── ब्रांड / brand ─────────────────────────────────────────────────────── */
+  --amber-terracotta: #c0533a;
+  --amber-terracotta-hover: #a3442e;
+  --amber-terracotta-soft: rgba(224, 101, 76, 0.11);
+  --amber-slate: #4a7280;
+
+  /* ── गरम neutral ramp / warm neutral ramp ─────────────────────────────────
+     Payload ships a cool grey ramp. These are the same steps rotated to a warm
+     hue so text, borders and surfaces carry the site's paper-and-ink feeling
+     instead of reading blue-grey. */
+  --color-base-0: #ffffff;
+  --color-base-50: #faf7f2;
+  --color-base-100: #f4efe6;
+  --color-base-150: #ece5d9;
+  --color-base-200: #e0d8c9;
+  --color-base-250: #d2c8b6;
+  --color-base-300: #c0b5a1;
+  --color-base-350: #ab9f8a;
+  --color-base-400: #968a75;
+  --color-base-450: #837763;
+  --color-base-500: #6f6554;
+  --color-base-550: #5d5448;
+  --color-base-600: #4d453a;
+  --color-base-650: #403931;
+  --color-base-700: #342e27;
+  --color-base-750: #2a251f;
+  --color-base-800: #211d18;
+  --color-base-850: #1a1713;
+  --color-base-900: #14110e;
+  --color-base-950: #0c0a08;
+  --color-base-1000: #000000;
+
+  /* ── "blue" = साइट का दूसरा रंग / the blue ramp becomes the site's slate ───
+     Payload uses this ramp for links, focus rings and informational accents.
+     Re-pointing it at the slate-blue keeps those meanings intact — mapping it
+     to terracotta instead would have collided with the red error states. */
+  --color-blue-50: #f0f5f7;
+  --color-blue-100: #dde9ed;
+  --color-blue-150: #c9dce2;
+  --color-blue-200: #b4ced7;
+  --color-blue-250: #9fc0cb;
+  --color-blue-300: #8fb0bc;
+  --color-blue-350: #7ba0ad;
+  --color-blue-400: #68909e;
+  --color-blue-450: #57808e;
+  --color-blue-500: #4a7280;
+  --color-blue-550: #3f6371;
+  --color-blue-600: #355562;
+  --color-blue-650: #2c4753;
+  --color-blue-700: #243a44;
+  --color-blue-750: #1d2f37;
+  --color-blue-800: #17262c;
+  --color-blue-850: #121e23;
+  --color-blue-900: #0e171b;
+  --color-blue-950: #0a1013;
+}
+
+/* गहरी थीम / dark theme — the site's actual night palette. Payload already
+   inverts the elevation mapping, so only the anchors need moving. */
+html[data-theme='dark'] {
+  --amber-terracotta: #e0654c;
+  --amber-terracotta-hover: #ef7961;
+  --amber-terracotta-soft: rgba(224, 101, 76, 0.16);
+
+  --color-base-0: #100e0c;
+  --color-base-50: #161412;
+  --color-base-100: #1c1917;
+  --color-base-150: #23201c;
+  --color-base-200: #2b2723;
+  --color-base-250: #342f29;
+  --color-base-300: #403a33;
+  --color-base-350: #4e463d;
+  --color-base-400: #5f5648;
+  --color-base-450: #6d6458;
+  --color-base-500: #837a6b;
+  --color-base-550: #978d7d;
+  --color-base-600: #a2988a;
+  --color-base-650: #b3a99a;
+  --color-base-700: #c2b8a8;
+  --color-base-750: #d2c8b8;
+  --color-base-800: #ded5c6;
+  --color-base-850: #e5ddd0;
+  --color-base-900: #ece4d6;
+  --color-base-950: #f4eee4;
+  --color-base-1000: #ffffff;
+}
+
+/* ═════ अक्षर / typography ═══════════════════════════════════════════════════
+   देवनागरी को थोड़ी ज़्यादा जगह चाहिए / Devanagari needs more vertical room than
+   Latin: matras sit above and below the baseline and collide at the line-height
+   a Latin-first UI assumes. The font stack lists Latin faces first and lets the
+   browser fall through per-glyph to a Devanagari face, so English and Hindi in
+   the same label each get a face designed for them. */
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    'Nirmala UI',
+    'Noto Sans Devanagari',
+    'Mangal',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.field-label,
+label,
+.nav__link,
+.pill,
+th,
+td {
+  line-height: 1.6;
+}
+
+/* ═════ बायाँ nav / sidebar ══════════════════════════════════════════════════ */
+.nav {
+  background: var(--theme-elevation-50);
+  border-right: 1px solid var(--theme-elevation-150);
+}
+
+/* समूह का नाम / group headings — small, spaced, quiet. */
+.nav__group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--theme-elevation-450);
+}
+
+.nav__link {
+  border-radius: 6px;
+  padding-block: 0.45rem;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+
+  &:hover {
+    background: var(--amber-terracotta-soft);
+    color: var(--amber-terracotta);
+  }
+}
+
+/* जिस पन्ने पर हैं / the current page — a terracotta bar, not just bold text,
+   so the active item is findable without reading. */
+.nav__link--active {
+  background: var(--amber-terracotta-soft);
+  color: var(--amber-terracotta);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--amber-terracotta);
+}
+
+/* ═════ बटन / buttons ════════════════════════════════════════════════════════ */
+.btn--style-primary {
+  background-color: var(--amber-terracotta);
+  border-color: var(--amber-terracotta);
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 600;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--amber-terracotta-hover);
+    border-color: var(--amber-terracotta-hover);
+    color: #fff;
+  }
+}
+
+.btn--style-secondary {
+  border-radius: 6px;
+
+  &:hover {
+    border-color: var(--amber-terracotta);
+    color: var(--amber-terracotta);
+  }
+}
+
+/* ═════ सूची की table / list tables ══════════════════════════════════════════ */
+.table {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--theme-elevation-150);
+
+  thead th {
+    background: var(--theme-elevation-50);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--theme-elevation-500);
+    border-bottom: 1px solid var(--theme-elevation-200);
+  }
+
+  tbody tr {
+    transition: background-color 0.14s ease;
+
+    &:hover {
+      background: var(--amber-terracotta-soft);
+    }
+  }
+
+  tbody td {
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+
+  /* पहला खाना = शीर्षक / first cell is the title — give it weight and colour. */
+  tbody td:nth-child(2) a {
+    font-weight: 600;
+    color: var(--theme-elevation-800);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--amber-terracotta);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+}
+
+/* ═════ स्थिति की गोली / status pills ════════════════════════════════════════ */
+.pill {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.6rem;
+}
+
+/* ═════ खाने / form fields ═══════════════════════════════════════════════════ */
+.field-type {
+  margin-bottom: 1.35rem;
+}
+
+.field-label {
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--theme-elevation-700);
+  margin-bottom: 0.35rem;
+}
+
+/* ज़रूरी खाने का तारा / the required asterisk — terracotta reads as "attention"
+   without the alarm of the default error red. */
+.required {
+  color: var(--amber-terracotta);
+}
+
+/* मदद की पंक्ति / the helper text under a field. */
+.field-description {
+  color: var(--theme-elevation-450);
+  font-size: 0.8rem;
+  line-height: 1.65;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='number'],
+input[type='password'],
+textarea,
+.rs__control {
+  border-radius: 6px;
+  border-color: var(--theme-elevation-200);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+
+  &:focus,
+  &:focus-within {
+    border-color: var(--amber-terracotta);
+    box-shadow: 0 0 0 3px var(--amber-terracotta-soft);
+    outline: none;
+  }
+}
+
+/* ═════ ऊपर की पट्टी / document header and breadcrumbs ═══════════════════════ */
+.step-nav {
+  font-size: 0.82rem;
+
+  a:hover {
+    color: var(--amber-terracotta);
+  }
+}
+
+.doc-header__title,
+h1 {
+  letter-spacing: -0.01em;
+}
+
+/* संग्रह के ऊपर लिखा परिचय / the description under a collection heading —
+   this carries the author's instructions, so it should read as guidance. */
+.view-description,
+.doc-header__description {
+  color: var(--theme-elevation-500);
+  border-left: 2px solid var(--amber-terracotta);
+  padding-left: 0.85rem;
+  line-height: 1.7;
+}
+
+/* ═════ पैनल और कार्ड / panels and cards ═════════════════════════════════════ */
+.card {
+  border-radius: 10px;
+  border: 1px solid var(--theme-elevation-150);
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease;
+
+  &:hover {
+    border-color: var(--amber-terracotta);
+    transform: translateY(-1px);
+  }
+}
+
+/* रचना लिखने का हिस्सा / the richtext editor — give it a real edge so the
+   writing area reads as a page rather than as loose text on the background. */
+.rich-text-lexical,
+.rich-text {
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+}
+
+/* कविता वाला block / the verse block, so poems are visually distinct while
+   editing in the same way they are on the site. */
+.lexical-block {
+  border-left: 2px solid var(--amber-terracotta);
+  border-radius: 0 8px 8px 0;
+  background: var(--amber-terracotta-soft);
+}
+
+/* ═════ लॉगिन का पन्ना / login screen ════════════════════════════════════════ */
+.login {
+  &__brand,
+  &__wrap {
+    border-radius: 12px;
+  }
+}
+
+/* ═════ scrollbar ════════════════════════════════════════════════════════════ */
+* {
+  scrollbar-color: var(--theme-elevation-300) transparent;
+  scrollbar-width: thin;
+}

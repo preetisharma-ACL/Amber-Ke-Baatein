@@ -8,10 +8,11 @@ import { isAdmin, isAdminField, isAdminOrSelf } from '../access'
  */
 export const Users: CollectionConfig = {
   slug: 'users',
+  labels: { singular: 'सदस्य / User', plural: 'सदस्य / Users' },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'email', 'role'],
-    group: 'व्यवस्था',
+    group: 'व्यवस्था / Settings',
   },
   auth: true,
   access: {
@@ -29,14 +30,14 @@ export const Users: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      label: 'नाम',
+      label: 'नाम / Name',
     },
     {
       name: 'role',
       type: 'select',
       required: true,
       defaultValue: 'editor',
-      label: 'भूमिका',
+      label: 'भूमिका / Role',
       options: [
         { label: 'Admin — पूरा नियंत्रण', value: 'admin' },
         { label: 'Editor — रचनाएँ लिख/छाप सकते हैं', value: 'editor' },

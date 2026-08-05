@@ -24,10 +24,16 @@ const readPublishedOnly: Access = ({ req: { user } }) => {
  */
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  /**
+   * हर label दो भाषाओं में / every label carries both scripts.
+   * The author reads Hindi; anyone maintaining the code, reading Payload docs
+   * or searching the API reads English. Showing both avoids a glossary.
+   */
+  labels: { singular: 'रचना / Post', plural: 'रचनाएँ / Posts' },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'displayDate', '_status'],
-    group: 'सामग्री',
+    group: 'सामग्री / Content',
     description: 'यहाँ से नई रचना जोड़िए। सहेजने पर "Draft" रहती है — "Publish" दबाने पर ही साइट पर आती है।',
   },
   access: {
@@ -48,14 +54,14 @@ export const Posts: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
-      label: 'शीर्षक',
+      label: 'शीर्षक / Title',
     },
     slugField('पते में यही आता है — /posts/kuch-paya-kuch-chhoot-gaya'),
     {
       name: 'excerpt',
       type: 'textarea',
       required: true,
-      label: 'झलक',
+      label: 'झलक / Excerpt',
       maxLength: 300,
       admin: {
         description: 'सूची और कार्ड पर दिखने वाली दो-तीन पंक्तियाँ।',
@@ -65,21 +71,21 @@ export const Posts: CollectionConfig = {
       name: 'content',
       type: 'richText',
       required: true,
-      label: 'रचना',
+      label: 'रचना / Content',
     },
     {
       name: 'category',
       type: 'relationship',
       relationTo: 'categories',
       required: true,
-      label: 'श्रेणी',
+      label: 'श्रेणी / Category',
       admin: { position: 'sidebar' },
     },
     {
       name: 'coverImage',
       type: 'upload',
       relationTo: 'media',
-      label: 'मुख्य तस्वीर (वैकल्पिक)',
+      label: 'मुख्य तस्वीर / Cover image (वैकल्पिक)',
       admin: { position: 'sidebar' },
     },
     {
@@ -94,7 +100,7 @@ export const Posts: CollectionConfig = {
       name: 'displayDate',
       type: 'text',
       required: true,
-      label: 'तारीख़ (जैसी दिखनी चाहिए)',
+      label: 'तारीख़ / Display date (जैसी दिखनी चाहिए)',
       admin: {
         position: 'sidebar',
         description: 'हिन्दी में लिखिए — जैसे "1 अगस्त 2026"। जैसा लिखेंगे वैसा ही दिखेगा।',
@@ -112,7 +118,7 @@ export const Posts: CollectionConfig = {
       // is network round trips, not scanning. It is here so the query stays
       // sane once there are hundreds of posts.
       index: true,
-      label: 'असली तारीख़ (क्रम के लिए)',
+      label: 'असली तारीख़ / Published date (क्रम के लिए)',
       defaultValue: () => new Date().toISOString(),
       admin: {
         position: 'sidebar',
@@ -126,7 +132,7 @@ export const Posts: CollectionConfig = {
       defaultValue: 0,
       // हर सूची `sort=-order` करती है / every list query sorts by this.
       index: true,
-      label: 'क्रम',
+      label: 'क्रम / Sort order',
       admin: {
         position: 'sidebar',
         description: 'बड़ा नंबर ऊपर दिखता है। सामान्यतः 0 ही रहने दीजिए।',
@@ -139,14 +145,14 @@ export const Posts: CollectionConfig = {
       name: 'views',
       type: 'number',
       defaultValue: 0,
-      label: 'कितनी बार पढ़ी गई',
+      label: 'कितनी बार पढ़ी गई / Views',
       admin: { position: 'sidebar', readOnly: true },
     },
     {
       name: 'likes',
       type: 'number',
       defaultValue: 0,
-      label: 'कितने लोगों को पसंद आई',
+      label: 'कितने लोगों को पसंद आई / Likes',
       admin: { position: 'sidebar', readOnly: true },
     },
   ],

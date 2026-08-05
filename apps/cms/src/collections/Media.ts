@@ -13,8 +13,9 @@ import { isAuthenticated, isPublic } from '../access'
  */
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: { singular: 'तस्वीर / Media', plural: 'तस्वीरें / Media' },
   admin: {
-    group: 'सामग्री',
+    group: 'सामग्री / Content',
   },
   access: {
     read: isPublic,
@@ -39,7 +40,7 @@ export const Media: CollectionConfig = {
       name: 'alt',
       type: 'text',
       required: true,
-      label: 'Alt text — तस्वीर में क्या है',
+      label: 'Alt text / तस्वीर में क्या है',
       admin: {
         description:
           'स्क्रीन-रीडर इसे पढ़ते हैं और तस्वीर न खुलने पर यही दिखता है। एक छोटा वाक्य लिखिए।',
@@ -48,7 +49,7 @@ export const Media: CollectionConfig = {
     {
       name: 'caption',
       type: 'text',
-      label: 'कैप्शन (वैकल्पिक)',
+      label: 'कैप्शन / Caption (वैकल्पिक)',
       admin: {
         description: 'तस्वीर के नीचे दिखने वाली पंक्ति। खाली छोड़ सकते हैं।',
       },

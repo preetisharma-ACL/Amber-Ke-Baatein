@@ -15,7 +15,7 @@ export const slugField = (description: string): Field => ({
   required: true,
   unique: true,
   index: true,
-  label: 'पता (slug)',
+  label: 'पता / Slug',
   admin: {
     position: 'sidebar',
     description,

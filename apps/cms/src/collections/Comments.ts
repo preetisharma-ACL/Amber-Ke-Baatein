@@ -20,10 +20,11 @@ const readApprovedOnly: Access = ({ req: { user } }) => {
  */
 export const Comments: CollectionConfig = {
   slug: 'comments',
+  labels: { singular: 'टिप्पणी / Comment', plural: 'टिप्पणियाँ / Comments' },
   admin: {
     useAsTitle: 'authorName',
     defaultColumns: ['authorName', 'post', 'status', 'createdAt'],
-    group: 'सामग्री',
+    group: 'सामग्री / Content',
     description: 'नई टिप्पणियाँ "प्रतीक्षा में" रहती हैं। पढ़कर "स्वीकृत" कीजिए, तभी साइट पर दिखेंगी।',
   },
   access: {
@@ -54,19 +55,19 @@ export const Comments: CollectionConfig = {
       relationTo: 'posts',
       required: true,
       index: true,
-      label: 'किस रचना पर',
+      label: 'किस रचना पर / On which post',
     },
     {
       name: 'authorName',
       type: 'text',
       required: true,
       maxLength: 80,
-      label: 'नाम',
+      label: 'नाम / Name',
     },
     {
       name: 'authorEmail',
       type: 'email',
-      label: 'ईमेल',
+      label: 'ईमेल / Email',
       access: {
         // पाठक भेज सकते हैं, पर साइट पर कभी नहीं दिखता।
         // Collected so you can reply; never returned to the public API.
@@ -81,7 +82,7 @@ export const Comments: CollectionConfig = {
       type: 'textarea',
       required: true,
       maxLength: 2000,
-      label: 'टिप्पणी',
+      label: 'टिप्पणी / Comment',
     },
     {
       name: 'status',
@@ -89,11 +90,11 @@ export const Comments: CollectionConfig = {
       required: true,
       defaultValue: 'pending',
       index: true,
-      label: 'स्थिति',
+      label: 'स्थिति / Status',
       options: [
-        { label: 'प्रतीक्षा में', value: 'pending' },
-        { label: 'स्वीकृत', value: 'approved' },
-        { label: 'स्पैम', value: 'spam' },
+        { label: 'प्रतीक्षा में / Pending', value: 'pending' },
+        { label: 'स्वीकृत / Approved', value: 'approved' },
+        { label: 'स्पैम / Spam', value: 'spam' },
       ],
       access: {
         // पाठक अपनी टिप्पणी खुद स्वीकृत न कर ले — पर staff (editor भी) कर सके।
