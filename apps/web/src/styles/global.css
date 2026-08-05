@@ -470,16 +470,6 @@ body {
   border-inline-start: 2px solid var(--kite-2);
 }
 
-.comments__row {
-  display: flex;
-  gap: 1.1rem;
-  flex-wrap: wrap;
-}
-
-.comments__row .comments__field {
-  flex: 1 1 14rem;
-}
-
 .comments__field {
   display: block;
   margin-bottom: 1.1rem;

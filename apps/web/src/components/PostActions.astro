@@ -24,24 +24,24 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
 <div class="post-actions" data-slug={slug} data-cms={cmsUrl} data-title={title}>
   <button class="act act--like" type="button" aria-pressed="false" disabled>
     <span class="act__icon" aria-hidden="true">♥</span>
-    <span class="act__label">पसंद</span>
+    <span class="act__label">पसंद / Like</span>
     <span class="act__count" data-like-count>—</span>
   </button>
 
   <div class="act__share">
-    <span class="act__share-label">साझा कीजिए</span>
+    <span class="act__share-label">साझा कीजिए / Share</span>
 
-    <button class="act act--icon" type="button" data-share="native" hidden title="साझा कीजिए">
-      <span aria-hidden="true">⤴</span><span class="sr-only">साझा कीजिए</span>
+    <button class="act act--icon" type="button" data-share="native" hidden title="साझा कीजिए / Share">
+      <span aria-hidden="true">⤴</span><span class="sr-only">साझा कीजिए / Share</span>
     </button>
 
     <a class="act act--icon" data-share="whatsapp" target="_blank" rel="noopener noreferrer"
-       href="#" title="WhatsApp पर भेजिए">
-      <span aria-hidden="true">✆</span><span class="sr-only">WhatsApp पर भेजिए</span>
+       href="#" title="WhatsApp पर भेजिए / Send on WhatsApp">
+      <span aria-hidden="true">✆</span><span class="sr-only">WhatsApp पर भेजिए / Send on WhatsApp</span>
     </a>
 
-    <button class="act act--icon" type="button" data-share="copy" title="लिंक कॉपी कीजिए">
-      <span aria-hidden="true">⧉</span><span class="sr-only">लिंक कॉपी कीजिए</span>
+    <button class="act act--icon" type="button" data-share="copy" title="लिंक कॉपी कीजिए / Copy link">
+      <span aria-hidden="true">⧉</span><span class="sr-only">लिंक कॉपी कीजिए / Copy link</span>
     </button>
   </div>
 
@@ -111,7 +111,7 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
           method: 'POST',
         });
         if (res.status === 429) {
-          say('थोड़ा रुककर कोशिश कीजिए।');
+          say('थोड़ा रुककर कोशिश कीजिए। / Too fast, try again shortly.');
           likeBtn.disabled = false;
           return;
         }
@@ -126,7 +126,7 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
         }
         paint(typeof data.likes === 'number' ? data.likes : null);
       } catch {
-        say('अभी पसंद दर्ज नहीं हो पाई — बाद में कोशिश कीजिए।');
+        say('अभी पसंद दर्ज नहीं हो पाई। / Could not register your like.');
         likeBtn.disabled = false;
       }
     });
@@ -155,7 +155,7 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
       async () => {
         try {
           await navigator.clipboard.writeText(url);
-          say('लिंक कॉपी हो गया।');
+          say('लिंक कॉपी हो गया। / Link copied.');
         } catch {
           say(url);
         }

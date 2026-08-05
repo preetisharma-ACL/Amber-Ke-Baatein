@@ -24,31 +24,35 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
 ---
 
 <section class="comments" data-post={postId} data-cms={cmsUrl} aria-labelledby="comments-heading">
-  <h3 id="comments-heading" class="comments__heading">बातचीत</h3>
+  <h3 id="comments-heading" class="comments__heading">बातचीत / Comments</h3>
 
   <div class="comments__list" data-list>
-    <p class="comments__empty" data-loading>टिप्पणियाँ आ रही हैं…</p>
+    <p class="comments__empty" data-loading>टिप्पणियाँ आ रही हैं… / loading…</p>
   </div>
 
   <form class="comments__form" data-form novalidate>
     <p class="comments__note">
       आपकी टिप्पणी पढ़ने के बाद ही साइट पर दिखेगी — इसलिए तुरंत न दिखे तो घबराइए मत।
+      <br />
+      <small>Comments appear once they have been read and approved.</small>
     </p>
 
-    <div class="comments__row">
-      <label class="comments__field">
-        <span>नाम <em>*</em></span>
-        <input type="text" name="authorName" maxlength="80" required autocomplete="name" />
-      </label>
-
-      <label class="comments__field">
-        <span>ईमेल <small>(वैकल्पिक, दिखेगा नहीं)</small></span>
-        <input type="email" name="authorEmail" maxlength="120" autocomplete="email" />
-      </label>
-    </div>
+    {/*
+      सिर्फ़ नाम और बात / name and comment only.
+      ईमेल जान-बूझकर हटाया गया — जो जानकारी हमें चाहिए ही नहीं, उसे माँगना नहीं
+      चाहिए। एक कम खाना भरने का मतलब है ज़्यादा लोग लिखेंगे, और रखने-सँभालने को
+      कोई निजी पता भी नहीं बचता।
+      The email field was deliberately removed: nothing here needs it, one less
+      box means more readers actually write, and a personal detail you never
+      collect is one you can never leak.
+    */}
+    <label class="comments__field">
+      <span>नाम / Name <em>*</em></span>
+      <input type="text" name="authorName" maxlength="80" required autocomplete="name" />
+    </label>
 
     <label class="comments__field">
-      <span>आपकी बात <em>*</em></span>
+      <span>आपकी बात / Comment <em>*</em></span>
       <textarea name="body" rows="4" maxlength="2000" required></textarea>
     </label>
 
@@ -63,7 +67,7 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
     </div>
 
     <div class="comments__actions">
-      <button class="btn" type="submit">भेजिए</button>
+      <button class="btn" type="submit">भेजिए / Send</button>
       <span class="comments__status" data-status role="status"></span>
     </div>
   </form>
@@ -97,7 +101,9 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
       list.replaceChildren();
 
       if (docs.length === 0) {
-        list.append(el('p', 'comments__empty', 'अभी कोई बात नहीं हुई। पहली आप कीजिए।'));
+        list.append(
+          el('p', 'comments__empty', 'अभी कोई बात नहीं हुई। पहली आप कीजिए। / No comments yet.'),
+        );
         return;
       }
 
@@ -124,7 +130,11 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
         render(Array.isArray(data.docs) ? data.docs : []);
       } catch {
         list.replaceChildren(
-          el('p', 'comments__empty', 'टिप्पणियाँ अभी नहीं आ पाईं।'),
+          el(
+            'p',
+            'comments__empty',
+            'टिप्पणियाँ अभी नहीं आ पाईं। / Comments could not be loaded.',
+          ),
         );
       }
     };
@@ -142,33 +152,30 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
       const body = String(data.get('body') ?? '').trim();
 
       if (!authorName || !body) {
-        status.textContent = 'नाम और बात — दोनों ज़रूरी हैं।';
+        status.textContent = 'नाम और बात — दोनों ज़रूरी हैं। / Both fields are required.';
         return;
       }
 
       const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
       submit.disabled = true;
-      status.textContent = 'भेजा जा रहा है…';
+      status.textContent = 'भेजा जा रहा है… / sending…';
 
       try {
-        const authorEmail = String(data.get('authorEmail') ?? '').trim();
+        // सिर्फ़ यही तीन / only these three. No email is collected.
         const res = await fetch(`${cms}/api/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            post: postId,
-            authorName,
-            body,
-            ...(authorEmail ? { authorEmail } : {}),
-          }),
+          body: JSON.stringify({ post: postId, authorName, body }),
         });
 
         if (!res.ok) throw new Error(String(res.status));
 
         form.reset();
-        status.textContent = 'धन्यवाद — पढ़ने के बाद आपकी बात यहाँ दिख जाएगी।';
+        status.textContent =
+          'धन्यवाद — पढ़ने के बाद आपकी बात यहाँ दिख जाएगी। / Thank you, it will appear once approved.';
       } catch {
-        status.textContent = 'अभी भेजी नहीं जा सकी — थोड़ी देर बाद कोशिश कीजिए।';
+        status.textContent =
+          'अभी भेजी नहीं जा सकी — थोड़ी देर बाद कोशिश कीजिए। / Could not send, please try again.';
       } finally {
         submit.disabled = false;
       }
