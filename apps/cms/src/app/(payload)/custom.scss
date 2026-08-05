@@ -28,6 +28,13 @@
   --amber-terracotta-soft: rgba(224, 101, 76, 0.11);
   --amber-slate: #4a7280;
 
+  /* बायें nav का अपना रंग / the sidebar's own surface.
+     Payload ships .nav with no background at all — only a hairline border — so
+     the panel reads as one flat sheet. This needs to be clearly distinct from
+     the white content area; an elevation-50 tint is imperceptible next to it. */
+  --amber-nav-bg: #f6f1e7;
+  --amber-nav-border: #e2d9c8;
+
   /* ── गरम neutral ramp / warm neutral ramp ─────────────────────────────────
      Payload ships a cool grey ramp. These are the same steps rotated to a warm
      hue so text, borders and surfaces carry the site's paper-and-ink feeling
@@ -86,6 +93,9 @@ html[data-theme='dark'] {
   --amber-terracotta-hover: #ef7961;
   --amber-terracotta-soft: rgba(224, 101, 76, 0.16);
 
+  --amber-nav-bg: #171412;
+  --amber-nav-border: #2b2723;
+
   --color-base-0: #100e0c;
   --color-base-50: #161412;
   --color-base-100: #1c1917;
@@ -136,41 +146,112 @@ td {
   line-height: 1.6;
 }
 
-/* ═════ बायाँ nav / sidebar ══════════════════════════════════════════════════ */
+/* ═════ बायाँ nav / sidebar ══════════════════════════════════════════════════
+   Class names here are taken from Payload's shipped stylesheet, not guessed.
+   Worth writing down, because two of them are easy to get wrong:
+     • the active link is `.nav__link.active` — NOT `.nav__link--active`
+     • the group heading is `.nav-group__toggle` (it is a <button>, since the
+       group collapses) — there is no `.nav__group-label`
+   ══════════════════════════════════════════════════════════════════════════ */
+
 .nav {
-  background: var(--theme-elevation-50);
-  border-right: 1px solid var(--theme-elevation-150);
+  background: var(--amber-nav-bg);
+  border-right: 1px solid var(--amber-nav-border);
 }
 
-/* समूह का नाम / group headings — small, spaced, quiet. */
-.nav__group-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+/* थोड़ी और जगह / a little more breathing room down the whole rail. */
+.nav__scroll {
+  gap: 0.15rem;
+}
+
+/* ── समूह का शीर्षक / group heading ────────────────────────────────────────
+   "सामग्री / Content" वग़ैरह. Uppercase only affects the Latin half — Devanagari
+   has no letter case — which is exactly the effect wanted: the English word
+   turns into a quiet marker while the Hindi stays plain and readable. */
+.nav-group__toggle {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--theme-elevation-450);
-}
+  margin-top: 1.4rem;
+  margin-bottom: 0.5rem;
+  padding-inline: 0.65rem;
 
-.nav__link {
-  border-radius: 6px;
-  padding-block: 0.45rem;
-  transition:
-    background-color 0.16s ease,
-    color 0.16s ease;
-
-  &:hover {
-    background: var(--amber-terracotta-soft);
+  &:hover,
+  &:focus-visible {
     color: var(--amber-terracotta);
   }
 }
 
-/* जिस पन्ने पर हैं / the current page — a terracotta bar, not just bold text,
-   so the active item is findable without reading. */
-.nav__link--active {
+/* पहले समूह के ऊपर इतनी जगह नहीं चाहिए / the first group needs no top gap. */
+.nav-group:first-child .nav-group__toggle {
+  margin-top: 0;
+}
+
+.nav-group {
+  margin-bottom: 0.35rem;
+}
+
+/* ── कड़ियाँ / the links ────────────────────────────────────────────────────
+   Payload sets padding-inline-start: 0, so a background sits flush against the
+   text with nothing around it — which is why the hover block looked unfinished.
+   Real horizontal padding turns it into a proper pill. */
+.nav__link {
+  padding-inline: 0.65rem;
+  padding-block: 0.4rem;
+  border-radius: 7px;
+  font-size: 0.95rem;
+  color: var(--theme-elevation-700);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+
+  /* Payload रेखांकित करता है / Payload underlines on hover. A background pill
+     reads better here and does not shift the Devanagari baseline. */
+  &:hover,
+  &:focus-visible {
+    background: var(--amber-terracotta-soft);
+    color: var(--amber-terracotta);
+    text-decoration: none;
+  }
+}
+
+/* जिस पन्ने पर हैं / the current page.
+   Payload marks it with weight alone, which is nearly invisible in a list of
+   Devanagari words. A filled pill plus a terracotta edge makes it findable
+   without reading every item. */
+.nav__link.active {
   background: var(--amber-terracotta-soft);
   color: var(--amber-terracotta);
-  font-weight: 600;
-  box-shadow: inset 2px 0 0 var(--amber-terracotta);
+  font-weight: 700;
+  box-shadow: inset 2.5px 0 0 var(--amber-terracotta);
+
+  &:hover {
+    background: var(--amber-terracotta-soft);
+  }
+}
+
+/* Payload की अपनी पट्टी बाहर -20px पर बैठती है / Payload's own indicator is
+   absolutely positioned 20px outside the link, so alongside a filled pill it
+   floats away from it. The inset edge above replaces it. */
+.nav__link-indicator {
+  display: none;
+}
+
+/* ऊपर का लोगो वाला हिस्सा / the header block above the links. */
+.nav__header {
+  border-bottom: 1px solid var(--amber-nav-border);
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+/* सबसे नीचे "Log out" / the log-out row, pushed away from the links. */
+.nav__controls,
+.nav__log-out {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--amber-nav-border);
 }
 
 /* ═════ बटन / buttons ════════════════════════════════════════════════════════ */
