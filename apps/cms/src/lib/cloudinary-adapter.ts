@@ -54,7 +54,42 @@ function requireCloudinary(): void {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
     secure: true,
+    // ?_a= वाला tracking हिस्सा हटा दीजिए / drop the SDK analytics query param;
+    // it makes every image URL look untidy and is of no use to this site.
+    analytics: false,
   })
+}
+
+/**
+ * पता बनाने से पहले भी जानकारी लगा दीजिए / configure before building a URL too.
+ *
+ * ── यह क्यों ज़रूरी निकला / why this exists ──────────────────────────────────
+ * पहले सिर्फ़ upload करते वक़्त config लगती थी। नतीजा: जिस server के चालू होते
+ * समय जानकारी मौजूद नहीं थी, वह तस्वीर तो चढ़ा देता था, पर उसका पता बना नहीं
+ * पाता — और गैलरी में टूटी हुई तस्वीरें दिखतीं।
+ *
+ * Only `handleUpload` used to configure the SDK. `onInit` bails out early when
+ * credentials are absent, so a server started before the key was added stayed
+ * unconfigured — uploads then worked (they configure on the way through) while
+ * `generateURL` and `staticHandler` silently produced unusable URLs. The
+ * symptom was files sitting correctly in Cloudinary behind a broken `<img>`.
+ *
+ * Unlike `requireCloudinary`, this never throws: a URL is generated during
+ * ordinary reads, and a missing credential must not turn every gallery query
+ * into a 500. It returns false and lets the caller fall back.
+ */
+function ensureCloudinary(): boolean {
+  if (missingCredentials().length) return false
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+    // ?_a= वाला tracking हिस्सा हटा दीजिए / drop the SDK analytics query param;
+    // it makes every image URL look untidy and is of no use to this site.
+    analytics: false,
+  })
+  return true
 }
 
 /** सब कुछ एक ही जगह / everything lands under one folder, per collection. */
@@ -140,15 +175,18 @@ export const cloudinaryAdapter =
       })
     },
 
-    generateURL: ({ filename, prefix: urlPrefix }) =>
-      cloudinary.url(publicIdFor(collection.slug, filename, urlPrefix), {
+    generateURL: ({ filename, prefix: urlPrefix }) => {
+      // बिना जानकारी के अधूरा पता मत बनाइए / never emit a half-built URL.
+      if (!ensureCloudinary()) return ''
+      return cloudinary.url(publicIdFor(collection.slug, filename, urlPrefix), {
         secure: true,
         resource_type: resourceTypeFor(filename),
         // कोई transformation नहीं — साइट अपनी ज़रूरत के हिसाब से जोड़ती है.
         // No transformation baked in. The site inserts what it needs into the
         // URL (see apps/web/src/utils/gallery.ts), so one stored URL serves
         // every size instead of one URL per size.
-      }),
+      })
+    },
 
     /**
      * Payload के अपने रास्ते से माँगी गई फ़ाइल / a file requested through
@@ -158,12 +196,18 @@ export const cloudinaryAdapter =
      * from Cloudinary's CDN instead of travelling through the CMS, which keeps
      * a small Node server out of the image-serving path entirely.
      */
-    staticHandler: (_req, { params }) =>
-      Response.redirect(
+    staticHandler: (_req, { params }) => {
+      if (!ensureCloudinary()) {
+        // 500 से बेहतर है साफ़ 503 / a clear 503 beats an opaque 500 — this is a
+        // configuration problem, not a missing file.
+        return new Response('Cloudinary is not configured on this server.', { status: 503 })
+      }
+      return Response.redirect(
         cloudinary.url(publicIdFor(params.collection, params.filename, params.prefix), {
           secure: true,
           resource_type: resourceTypeFor(params.filename),
         }),
         302,
-      ),
+      )
+    },
   })

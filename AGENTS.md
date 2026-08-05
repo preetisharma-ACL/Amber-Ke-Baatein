@@ -125,6 +125,38 @@ a Node server, and with the database ~300ms away that puts roughly 600ms on
 every reader's page load to save the author one rebuild — the wrong trade for a
 blog that is read far more often than it is written to.
 
+## Uploads: Cloudinary
+
+Everything uploaded — gallery photos, post cover images, recitations — goes to
+Cloudinary, never to disk. `plugin-cloud-storage` sets `disableLocalStorage` on
+`gallery`, `media` and `audio`, and `lib/cloudinary-adapter.ts` supplies the
+four methods (upload, delete, generateURL, staticHandler). There is **no
+official Cloudinary adapter**; Payload ships S3/Azure/GCS/Vercel Blob/
+UploadThing only, which is why this one is hand-written.
+
+- **The collections deliberately set no `imageSizes`.** Cloudinary resizes from
+  the URL, so one stored original serves every size.
+  `apps/web/src/utils/gallery.ts` → `cloudinaryVariant(url, 'w_840,c_limit,f_auto,q_auto')`
+  splices the transform in after `/upload/`. Generating fixed derivatives at
+  upload time would mean uploading near-duplicates and *still* being unable to
+  serve a size nobody planned for.
+- **Gallery is its own collection, separate from Media**, so post cover images
+  do not turn up in the public grid.
+
+⚠️ **`url` is written into Postgres once, at upload — never recomputed on read.**
+This is the trap that broke the gallery: `onInit` returns early when the
+Cloudinary keys are missing, and `generateURL` used to assume it had run. A
+server started *before* the keys were added therefore uploaded the file
+successfully (`handleUpload` configures on the way through) while storing
+`http://localhost:3456/api/gallery/file/…` as the URL. The symptom is a broken
+`<img>` in front of a file that is sitting perfectly well in Cloudinary.
+
+`generateURL` and `staticHandler` now call `ensureCloudinary()` themselves, so
+this cannot recur. But **re-saving a damaged row does not repair it** — the
+plugin does not regenerate `url` on update. Delete and re-upload the file, or
+rewrite the column directly. And **after changing anything in `.env`, restart
+the CMS**: a running server holds the old environment.
+
 ## Audio and video on a post
 
 A post can carry a recitation and one video. Both optional, both independent.
@@ -253,8 +285,7 @@ back afterwards.
 - **Comments are pre-moderated.** New ones land as `pending`; the public API only
   ever returns `approved`. Both field-level access and a `beforeValidate` hook pin
   this, so a crafted POST cannot self-approve.
-- **Uploads go to local disk** (`apps/cms/media/`). Serverless hosts have an
-  ephemeral filesystem — switch to S3/R2 storage before deploying.
+- **Uploads go to Cloudinary**, not to disk — see the section above.
 - **Poems are a `verse` block, not raw HTML.** Lexical has no raw-HTML node, so
   the old `<div class="verse">` markup became a real editor block: the author
   types plain lines, a blank line starts a new stanza. `packages/shared/src/lexical.ts`
