@@ -78,6 +78,17 @@ your users (check the region list in the Neon console), or a local Postgres for
 development. At ~30ms RTT the same endpoint would land near 60–130ms instead of
 550–640ms.
 
+**Changing the Neon project does not help unless the region changes.** The
+database was swapped once already (to `ep-mute-sunset-…-pooler`, still
+`us-east-2`) and measured identically: ~265ms per round trip, ~554–710ms on
+`/api/posts?limit=10`. Re-check any new database with `npm run measure:db
+--workspace @amber/cms` before assuming a move improved anything.
+
+Switching databases is not just an env change — a fresh Neon project is empty.
+Payload pushes the schema on first connect in dev, but rows (posts, categories,
+version history, **and the admin user account**) have to be copied over or the
+CMS comes up with no content and no way to log in.
+
 ## Dev is not a performance measurement
 
 `next dev` uses Turbopack and compiles routes on demand. Measured on `/admin`:
