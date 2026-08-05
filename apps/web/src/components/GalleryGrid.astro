@@ -1,30 +1,58 @@
 ---
-import { Image } from 'astro:assets';
-import { gallery } from '../data/gallery';
+import { cloudinaryVariant, getGallery } from '../utils/gallery';
 
 /**
  * तस्वीरों की जाली / the photo grid.
- * Items without a `src` render the empty "तस्वीर यहाँ" frame, so the page
- * still shows where future photos will sit.
+ *
+ * तस्वीरें अब CMS से आती हैं — `data/gallery.ts` की हाथ से लिखी सूची से नहीं.
+ * Photos now come from the CMS rather than a hand-written array, so adding one
+ * is an upload rather than a code change.
+ *
+ * गैलरी खाली हो तो पन्ना खाली नहीं दिखता — तीन खाली फ़्रेम रहते हैं, जैसे पहले.
+ * When the gallery is empty the page keeps the three empty frames it always
+ * had, so it reads as "photographs go here" rather than as a broken page.
  */
+const photos = await getGallery();
+
+/** कम से कम तीन ख़ाने / pad to three so the grid never looks abandoned. */
+const emptySlots = Math.max(0, 3 - photos.length);
 ---
 
 <div class="gallery wrap-wide">
   {
-    gallery.map((item) => (
-      <div class:list={['gal-item', { 'gal-empty': !item.src }]}>
+    photos.map((photo) => (
+      <div class="gal-item">
         <div class="frame">
-          {item.src ? (
-            <Image src={item.src} alt={item.caption} width={420} loading="lazy" />
-          ) : (
-            <span>
-              तस्वीर
-              <br />
-              यहाँ
-            </span>
-          )}
+          {/*
+            आकार Cloudinary से माँगा जाता है, बनाया नहीं जाता.
+            The size is requested from Cloudinary rather than stored: 840px wide
+            covers a retina screen at the ~420px the frame renders, and f_auto
+            serves WebP or AVIF where the browser supports it.
+          */}
+          <img
+            src={cloudinaryVariant(photo.url, 'w_840,c_limit,f_auto,q_auto')}
+            alt={photo.alt}
+            loading="lazy"
+            decoding="async"
+            width={photo.width}
+            height={photo.height}
+          />
         </div>
-        <div class="caption">{item.caption}</div>
+        <div class="caption">{photo.caption}</div>
+      </div>
+    ))
+  }
+  {
+    Array.from({ length: emptySlots }).map(() => (
+      <div class="gal-item gal-empty">
+        <div class="frame">
+          <span>
+            तस्वीर
+            <br />
+            यहाँ
+          </span>
+        </div>
+        <div class="caption">यहाँ एक तस्वीर</div>
       </div>
     ))
   }

@@ -25,14 +25,18 @@ export const Media: CollectionConfig = {
   },
   upload: {
     mimeTypes: ['image/*'],
-    // साइट को हर जगह पूरी तस्वीर नहीं चाहिए — छोटे आकार पहले से बना लेते हैं।
-    // Pre-generate the sizes the site actually uses so the browser never
-    // downloads a 4MB original to fill a 400px card.
-    imageSizes: [
-      { name: 'thumbnail', width: 400, height: 300, position: 'centre' },
-      { name: 'card', width: 768, height: 512, position: 'centre' },
-      { name: 'hero', width: 1600, height: undefined },
-    ],
+    /**
+     * कोई पहले से बने आकार नहीं — Cloudinary माँगने पर बदल देता है.
+     *
+     * पहले यहाँ thumbnail/card/hero बनते थे। अब सिर्फ़ मूल तस्वीर जाती है और
+     * साइट URL में आकार माँग लेती है।
+     *
+     * This used to pre-generate thumbnail/card/hero derivatives with sharp.
+     * With Cloudinary storing the uploads, only the original goes up and any
+     * size is produced on demand from the URL — so a size nobody anticipated
+     * costs nothing, and one upload stops becoming four near-duplicate files.
+     * See lib/cloudinary-adapter.ts.
+     */
     focalPoint: true,
   },
   fields: [

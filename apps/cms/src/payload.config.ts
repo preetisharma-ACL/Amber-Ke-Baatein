@@ -1,4 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { cloudStoragePlugin } from '@payloadcms/plugin-cloud-storage'
 import {
   AlignFeature,
   BlocksFeature,
@@ -13,7 +14,9 @@ import sharp from 'sharp'
 
 import { VerseBlock } from './blocks/Verse'
 import { Categories } from './collections/Categories'
+import { Gallery } from './collections/Gallery'
 import { draftFromPoem } from './endpoints/draft-from-poem'
+import { cloudinaryAdapter } from './lib/cloudinary-adapter'
 import { Comments } from './collections/Comments'
 import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
@@ -71,7 +74,7 @@ export default buildConfig({
    * depth. Nothing relies on the old default of 2.
    */
   defaultDepth: 0,
-  collections: [Posts, Categories, Media, Comments, Users],
+  collections: [Posts, Categories, Gallery, Media, Comments, Users],
 
   // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
   // reachable at POST /api/draft-from-poem. Staff-only; see the handler.
@@ -127,5 +130,19 @@ export default buildConfig({
   cors: [siteUrl],
   csrf: [siteUrl],
   sharp,
-  plugins: [],
+  plugins: [
+    /**
+     * तस्वीरें Cloudinary पर, disk पर नहीं.
+     * Uploads go to Cloudinary rather than local disk. Local disk does not
+     * survive a redeploy on any host worth using, and Cloudinary also lets
+     * the site ask for any size from the URL instead of the CMS generating
+     * a fixed set at upload time.
+     */
+    cloudStoragePlugin({
+      collections: {
+        gallery: { adapter: cloudinaryAdapter() },
+        media: { adapter: cloudinaryAdapter() },
+      },
+    }),
+  ],
 })
