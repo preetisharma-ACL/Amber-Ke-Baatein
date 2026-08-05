@@ -1,9 +1,17 @@
 import { getPayload } from 'payload'
 import config from '../../src/payload.config.js'
 
+/**
+ * `name` और `role` इसलिए हैं क्योंकि Users में ये ज़रूरी हैं.
+ * Both are required on the Users collection, so the scaffolded seed data no
+ * longer type-checks without them — TypeScript otherwise falls through to
+ * payload.create's draft overload and reports a confusing "missing draft".
+ */
 export const testUser = {
   email: 'dev@payloadcms.com',
   password: 'test',
+  name: 'Test User',
+  role: 'admin' as const,
 }
 
 /**

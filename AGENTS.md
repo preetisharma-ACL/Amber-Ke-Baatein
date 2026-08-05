@@ -47,6 +47,45 @@ One `.env` at the repo root, read by both apps — `apps/web` via Vite's `envDir
 per-app `.env` files; the secret would drift between them. `.env.example` is the
 committed template.
 
+## Performance: the database is on another continent
+
+**Every SQL round trip costs ~280ms.** Neon is in AWS `us-east-2` (Ohio); this
+machine is in India. Measured with `npm run measure:db --workspace @amber/cms`:
+
+| | measured |
+|---|---|
+| `SELECT 1` (warm, open connection) | **~280ms** |
+| `SELECT count(*)` on a 1-row table | ~290ms |
+| TCP connect (one handshake) | ~1.6s |
+| `pg` connect (TCP + TLS + auth) | ~3–4s |
+
+That ~280ms is a hard floor. A `payload.find()` issues 2–3 sequential
+statements (count, rows, then one per populated relationship), so the API
+cannot go below roughly `280ms × queries`. **99.7% of a `find()` is spent
+waiting on the network** — not planning, scanning, or serialising.
+
+Consequences that are easy to misdiagnose:
+
+- **Indexes will not help.** They reduce scan time, and there is no scan time to
+  reduce. `index: true` on `order`/`publishedAt` is there for future scale only.
+- **Lowering `depth` genuinely helps**, because each level is another round
+  trip. `defaultDepth` is 0 for this reason; ask for depth explicitly.
+- **Never let a connection drop.** Rebuilding one costs ~4s, which is why the
+  pool sets `keepAlive` and a 60s idle timeout.
+
+The only real fix is moving the data closer — a Neon project in a region near
+your users (check the region list in the Neon console), or a local Postgres for
+development. At ~30ms RTT the same endpoint would land near 60–130ms instead of
+550–640ms.
+
+## Dev is not a performance measurement
+
+`next dev` uses Turbopack and compiles routes on demand. Measured on `/admin`:
+**~4s TTFB in dev vs ~14ms in a production build.** The admin's "36 chunks /
+11.8MB" is likewise a dev artifact — a production build emits 3.9MB on disk,
+before compression. Always re-measure with `npm run build:cms && npm run start
+--workspace @amber/cms` before concluding anything is slow.
+
 ## Gotchas worth knowing
 
 - **`turbopack.root` must be the repo root**, not `apps/cms`. npm hoists `next`

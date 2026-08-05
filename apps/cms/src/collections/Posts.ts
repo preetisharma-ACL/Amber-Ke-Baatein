@@ -107,6 +107,11 @@ export const Posts: CollectionConfig = {
       name: 'publishedAt',
       type: 'date',
       required: true,
+      // सूची इसी से छँटती है / list views and the site sort on this.
+      // Note: at the current data size this saves nothing measurable — the cost
+      // is network round trips, not scanning. It is here so the query stays
+      // sane once there are hundreds of posts.
+      index: true,
       label: 'असली तारीख़ (क्रम के लिए)',
       defaultValue: () => new Date().toISOString(),
       admin: {
@@ -119,6 +124,8 @@ export const Posts: CollectionConfig = {
       type: 'number',
       required: true,
       defaultValue: 0,
+      // हर सूची `sort=-order` करती है / every list query sorts by this.
+      index: true,
       label: 'क्रम',
       admin: {
         position: 'sidebar',

@@ -465,8 +465,16 @@ for (const file of files) {
       children.push(verseBlockNode(seg.text))
     } else if (seg.kind === 'lyric') {
       children.push(quoteNode(seg.lines))
-    } else {
+    } else if (seg.kind === 'center') {
       children.push(centeredParagraph(seg.text))
+    } else if (seg.kind === 'code') {
+      children.push(codeBlockNode(seg.language, seg.code))
+    } else {
+      // हर तरह का segment ऊपर सँभल जाना चाहिए / every kind is handled above.
+      // A bare `else` here previously swallowed the `code` case as if it were
+      // `center`, which tsx never caught because it does not type-check.
+      const unreachable: never = seg
+      throw new Error(`unhandled segment: ${JSON.stringify(unreachable)}`)
     }
   }
 

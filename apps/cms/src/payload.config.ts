@@ -43,7 +43,33 @@ export default buildConfig({
     meta: {
       titleSuffix: '— अम्बर की बातें',
     },
+    /**
+     * <html> पर server और client का मेल न बैठने की चेतावनी बंद.
+     *
+     * Payload खुद <html data-theme dir lang> render करता है — हम नहीं.
+     * Payload's own RootLayout owns the <html> element and renders
+     * `data-theme` from a cookie, plus `dir="LTR"` in uppercase which the
+     * browser normalises to lowercase in the DOM. Both differ between the
+     * server pass and the client pass through no fault of this project, and
+     * this flag is the officially supported knob for exactly that — it is read
+     * as `config.admin.suppressHydrationWarning` and applied to <html>.
+     *
+     * ध्यान दीजिए / note: this scopes to the <html> tag only. It does not hide
+     * hydration bugs inside the app's own components.
+     */
+    suppressHydrationWarning: true,
   },
+
+  /**
+   * REST/local API का डिफ़ॉल्ट depth — 2 से घटाकर 0.
+   *
+   * Every extra depth level is another sequential SELECT, and against a
+   * database this far away each one costs a full ~330ms round trip. Callers
+   * that genuinely need relationships ask for them explicitly: the Astro site
+   * requests `?depth=1` to get category names, and the admin passes its own
+   * depth. Nothing relies on the old default of 2.
+   */
+  defaultDepth: 0,
   collections: [Posts, Categories, Media, Comments, Users],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
@@ -67,6 +93,27 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
+
+      /**
+       * ── ये सब सिर्फ़ connection बनने का ख़र्च बचाते हैं, दूरी का नहीं ──────────
+       * These settings only reduce *connection setup* cost. They cannot reduce
+       * per-query latency, which is dominated by physical distance to Neon
+       * (measured: ~330ms per round trip to us-east-2 from here). Keeping a
+       * connection alive matters a lot precisely because rebuilding one costs
+       * ~4s: TCP handshake alone measured 1.5s, then TLS and auth on top.
+       */
+
+      // खुला connection बंद न हो / keep sockets warm rather than re-handshaking.
+      idleTimeoutMillis: 60_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+
+      // Neon के free tier पर connection सीमित हैं / Neon's free tier caps
+      // connections; 10 is plenty for a single-author CMS and leaves headroom.
+      max: 10,
+
+      // जुड़ न पाए तो जल्दी हार मानिए / fail fast instead of hanging a request.
+      connectionTimeoutMillis: 15_000,
     },
   }),
   // Astro दूसरे port पर चलता है, इसलिए browser को अनुमति देनी पड़ती है।
