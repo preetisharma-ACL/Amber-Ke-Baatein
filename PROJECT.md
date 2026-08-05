@@ -156,9 +156,24 @@ code builds the document. Asking a model for a deep nested structure means
 trusting it to get every field right on every node, where one mistake breaks the
 editor.
 
-**Model:** `claude-sonnet-5`. **Cost:** roughly ₹1.20 per poem.
+| | |
+|---|---|
+| **Model** | `claude-sonnet-5`, effort `medium` |
+| **Cost** | roughly **₹1.20 per poem** (~600 tokens in, ~900 out) |
+| **Speed** | ~25 seconds per poem |
+| **Where** | one line — `model:` in `apps/cms/src/endpoints/draft-from-poem.ts` |
+
+**Why Sonnet 5.** It was built against Opus 5, which was returning `529
+overloaded` at the time while Sonnet 5 answered normally — a capacity problem on
+Anthropic's side, never the API key. Sonnet 5 was then verified on real work and
+kept: transliterating a title and deciding which lines are verse is
+classification, not deep reasoning, and it does it at about half the cost.
+Nothing else in the codebase depends on the choice, so moving back is a one-line
+change.
+
 **Verified:** given the existing post as plain text, it reproduced the
-hand-picked slug exactly and identified every verse block correctly.
+hand-picked slug `kuch-paya-kuch-chhoot-gaya` **exactly**, chose the right
+category, and identified both verse blocks with the correct stanza breaks.
 
 ---
 

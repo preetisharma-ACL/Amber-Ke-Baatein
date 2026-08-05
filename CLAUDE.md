@@ -169,9 +169,19 @@ failing silently.
 
 - **Endpoint:** `POST /api/draft-from-poem` (`src/endpoints/draft-from-poem.ts`),
   staff-only. **UI:** `src/components/PoemAutofill.tsx`, mounted as a `ui` field.
-- **Model `claude-opus-5`**, structured outputs via `messages.parse()` + a Zod
-  schema, so there is no JSON parsing or retry loop. Effort `medium` — this is
-  classification and transliteration, not deep reasoning.
+- **Model `claude-sonnet-5`**, effort `medium`, structured outputs via
+  `messages.parse()` + a Zod schema — so there is no JSON parsing and no retry
+  loop. The single source of truth is `model:` in `draft-from-poem.ts`; nothing
+  else depends on which model is used, so switching is a one-line change.
+
+  *Why Sonnet 5 and not Opus 5:* it was built against `claude-opus-5`, which was
+  returning `529 overloaded` across repeated attempts while Sonnet 5 and Haiku
+  answered normally — so the constraint was capacity, never the key. Sonnet 5
+  was then verified on a real post: it reproduced the hand-picked slug
+  `kuch-paya-kuch-chhoot-gaya` exactly and classified every verse block
+  correctly, at roughly half the cost and ~25s per call. This job is
+  transliteration and classification, not deep reasoning, which is also why
+  effort is `medium` rather than the `high` default.
 - **Claude returns classified segments, never Lexical JSON.** It decides which
   lines are verse, quoted lyric, centred, or prose; `src/lib/lexical-nodes.ts`
   builds the actual nodes. Asking a model for Lexical directly means trusting it
