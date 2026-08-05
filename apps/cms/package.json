@@ -14,6 +14,7 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "migrate:markdown": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/migrate-markdown.ts",
     "measure:db": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/measure-db-latency.ts",
+    "test:autofill": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/test-autofill.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start --port 3456",
     "test": "npm run test:int && npm run test:e2e",

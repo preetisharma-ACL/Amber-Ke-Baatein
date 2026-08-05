@@ -133,7 +133,12 @@ export const draftFromPoem: Endpoint = {
     })
     const categoryNames = categories.docs.map((c) => String(c.name))
 
-    const client = new Anthropic()
+    // 529 (overloaded) असल में आता है — SDK खुद backoff के साथ दोबारा कोशिश करता है।
+    // Transient 529s are common enough to hit in normal use. The SDK retries
+    // 429/5xx with exponential backoff on its own; 4 is chosen over the default
+    // 2 because a person is sitting and waiting, and a silent extra retry is
+    // far better for them than an error they have to understand and act on.
+    const client = new Anthropic({ maxRetries: 4 })
 
     let draft: z.infer<typeof DraftSchema> | null = null
     try {
@@ -161,10 +166,28 @@ export const draftFromPoem: Endpoint = {
       draft = message.parsed_output
     } catch (err) {
       req.payload.logger.error({ err }, 'draft-from-poem: Claude call failed')
-      return Response.json(
-        { error: `Claude से बात नहीं हो पाई / ${(err as Error).message}` },
-        { status: 502 },
-      )
+
+      /**
+       * निदेशक जी को कच्चा error नहीं दिखना चाहिए.
+       * The person reading this is a writer, not an engineer — a raw
+       * `529 {"type":"error",…}` blob tells them nothing they can act on. Map
+       * each failure to what they should actually *do*, and keep the technical
+       * detail in the server log above.
+       */
+      const status = (err as { status?: number }).status
+      const message =
+        status === 429 || status === 529
+          ? 'Claude अभी व्यस्त है — एक-दो मिनट बाद फिर "भरिए" दबाइए। / Claude is busy right now; wait a minute and press Fill again.'
+          : status === 401
+            ? 'API key ग़लत या रद्द है — .env में ANTHROPIC_API_KEY जाँचिए। / Invalid API key.'
+            : status === 400
+              ? 'यह पाठ Claude स्वीकार नहीं कर पाया — शायद बहुत लंबा है। / Claude rejected the input; it may be too long.'
+              : `Claude से बात नहीं हो पाई / could not reach Claude${status ? ` (HTTP ${status})` : ''}.`
+
+      // 429/529 पर 503 लौटाइए — "फिर कोशिश कीजिए" का सही संकेत यही है।
+      return Response.json({ error: message, retryable: status === 429 || status === 529 }, {
+        status: status === 429 || status === 529 ? 503 : 502,
+      })
     }
 
     if (!draft) {
