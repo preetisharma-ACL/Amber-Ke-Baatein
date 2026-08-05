@@ -169,19 +169,25 @@ failing silently.
 
 - **Endpoint:** `POST /api/draft-from-poem` (`src/endpoints/draft-from-poem.ts`),
   staff-only. **UI:** `src/components/PoemAutofill.tsx`, mounted as a `ui` field.
-- **Model `claude-sonnet-5`**, effort `medium`, structured outputs via
-  `messages.parse()` + a Zod schema — so there is no JSON parsing and no retry
-  loop. The single source of truth is `model:` in `draft-from-poem.ts`; nothing
-  else depends on which model is used, so switching is a one-line change.
+- **Model `claude-haiku-4-5`**, structured outputs via `messages.parse()` + a Zod
+  schema — so there is no JSON parsing and no retry loop. The single source of
+  truth is `model:` in `draft-from-poem.ts`; nothing else depends on the choice,
+  so switching is a one-line change.
 
-  *Why Sonnet 5 and not Opus 5:* it was built against `claude-opus-5`, which was
-  returning `529 overloaded` across repeated attempts while Sonnet 5 and Haiku
-  answered normally — so the constraint was capacity, never the key. Sonnet 5
-  was then verified on a real post: it reproduced the hand-picked slug
-  `kuch-paya-kuch-chhoot-gaya` exactly and classified every verse block
-  correctly, at roughly half the cost and ~25s per call. This job is
-  transliteration and classification, not deep reasoning, which is also why
-  effort is `medium` rather than the `high` default.
+  ⚠️ **Do not add `effort` while on Haiku 4.5** — it rejects the parameter and
+  every request 400s. It was set to `medium` under Sonnet 5 and had to be removed
+  with the switch. Restore it if you move back to a Sonnet or Opus model.
+
+  *Model history:* built on `claude-opus-5`, moved to `claude-sonnet-5` when Opus
+  was returning `529 overloaded` (capacity on Anthropic's side, never the key),
+  then to Haiku 4.5 by choice. All three were tested on the same real post; Haiku
+  matched Sonnet exactly — same slug, same category, same segment classification
+  — in **17s rather than 23s** and at roughly a third of the cost. Reasonable,
+  because this job is transliteration and classification, not reasoning.
+
+  One difference worth watching: Haiku writes the **excerpt** as a summary,
+  where the prompt asks for lines drawn from the opening. Harmless, but it is
+  the first place quality will drift if you push this model harder.
 - **Claude returns classified segments, never Lexical JSON.** It decides which
   lines are verse, quoted lyric, centred, or prose; `src/lib/lexical-nodes.ts`
   builds the actual nodes. Asking a model for Lexical directly means trusting it

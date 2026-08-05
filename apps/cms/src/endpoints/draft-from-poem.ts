@@ -144,24 +144,32 @@ export const draftFromPoem: Endpoint = {
     try {
       const message = await client.messages.parse({
         /**
-         * Sonnet 5 — जान-बूझकर, आपके कहने पर.
+         * Haiku 4.5 — आपके कहने पर / your call.
          *
-         * Chosen deliberately over claude-opus-5: at the time this was wired up
-         * Opus 5 was returning 529 overloaded across repeated attempts, and this
-         * job — transliterating a title and classifying which lines are verse —
-         * is well within Sonnet 5's range. It is also cheaper and faster, which
-         * matters when someone is watching the spinner.
+         * सबसे सस्ता और तेज़ मॉडल। यह काम — शीर्षक का रोमन में लिप्यंतरण और यह
+         * पहचानना कि कौन-सी पंक्तियाँ कविता हैं — भारी सोच का नहीं है।
          *
-         * Opus 5 पर लौटना हो तो सिर्फ़ यह पंक्ति बदलिए।
-         * To move back, change this one line; nothing else depends on the model.
+         * The cheapest and fastest of the current models, at roughly a third of
+         * Sonnet 5's price. This job is transliteration plus classification, not
+         * reasoning, so it is a reasonable fit — but Haiku is a much smaller
+         * model, and the slug is the one output where a wrong answer is
+         * permanent (it becomes the post's URL). Re-check the first few posts.
+         *
+         * बदलना हो तो सिर्फ़ यह पंक्ति / to change models, edit this one line —
+         * nothing else in the codebase depends on the choice.
          */
-        model: 'claude-sonnet-5',
+        model: 'claude-haiku-4-5',
         max_tokens: 16000,
         output_config: {
-          // भरने का काम गहरे विचार का नहीं — medium यहाँ काफ़ी है और तेज़ भी.
-          // This is classification and transliteration, not deep reasoning;
-          // medium keeps it responsive without costing quality.
-          effort: 'medium',
+          /**
+           * ⚠️ यहाँ `effort` मत जोड़िए / do NOT add `effort` here.
+           *
+           * Haiku 4.5 इसे स्वीकार नहीं करता — हर अनुरोध 400 देगा।
+           * Haiku 4.5 rejects the effort parameter outright: every request would
+           * fail with a 400. It was set to `medium` while this ran on Sonnet 5
+           * and had to be removed with the model switch. If you move back to a
+           * Sonnet or Opus model, effort can (and should) come back.
+           */
           format: zodOutputFormat(DraftSchema),
         },
         system: systemPrompt(categoryNames),

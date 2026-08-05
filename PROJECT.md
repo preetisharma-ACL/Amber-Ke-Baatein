@@ -158,22 +158,26 @@ editor.
 
 | | |
 |---|---|
-| **Model** | `claude-sonnet-5`, effort `medium` |
-| **Cost** | roughly **₹1.20 per poem** (~600 tokens in, ~900 out) |
-| **Speed** | ~25 seconds per poem |
+| **Model** | `claude-haiku-4-5` |
+| **Cost** | roughly **₹0.40 per poem** (~600 tokens in, ~900 out) |
+| **Speed** | ~17 seconds per poem |
 | **Where** | one line — `model:` in `apps/cms/src/endpoints/draft-from-poem.ts` |
 
-**Why Sonnet 5.** It was built against Opus 5, which was returning `529
-overloaded` at the time while Sonnet 5 answered normally — a capacity problem on
-Anthropic's side, never the API key. Sonnet 5 was then verified on real work and
-kept: transliterating a title and deciding which lines are verse is
-classification, not deep reasoning, and it does it at about half the cost.
-Nothing else in the codebase depends on the choice, so moving back is a one-line
-change.
+**Why Haiku 4.5.** The work went Opus 5 → Sonnet 5 → Haiku 4.5. Opus was
+dropped when it returned `529 overloaded` (capacity at Anthropic, never the API
+key); Haiku was then chosen deliberately. All three were tested on the same real
+post, and **Haiku matched Sonnet exactly** — same slug, same category, same
+verse classification — while being faster and roughly a third of the price. That
+holds because the task is transliteration and classification, not reasoning.
 
 **Verified:** given the existing post as plain text, it reproduced the
 hand-picked slug `kuch-paya-kuch-chhoot-gaya` **exactly**, chose the right
 category, and identified both verse blocks with the correct stanza breaks.
+
+⚠️ Two things to know if you change the model: `effort` must **not** be set on
+Haiku 4.5 (it 400s), and Haiku writes the excerpt as a summary rather than
+drawing from the opening as the prompt asks — the first place quality would
+drift.
 
 ---
 
