@@ -2,6 +2,7 @@ import type { Access, CollectionConfig } from 'payload'
 
 import { isAuthenticated } from '../access'
 import { slugField } from '../fields/slug'
+import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate-site'
 
 /**
  * बिना लॉगिन सिर्फ़ छपी हुई रचनाएँ दिखती हैं / drafts stay private.
@@ -48,6 +49,15 @@ export const Posts: CollectionConfig = {
   versions: {
     drafts: true,
     maxPerDoc: 20,
+  },
+  /**
+   * छापते ही साइट पर दिखे / publishing should put the post on the site.
+   * Without this the author publishes and the post's own page 404s until
+   * someone rebuilds. Never blocks the save — see the hook.
+   */
+  hooks: {
+    afterChange: [revalidateAfterChange],
+    afterDelete: [revalidateAfterDelete],
   },
   fields: [
     {

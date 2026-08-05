@@ -97,24 +97,26 @@ CMS comes up with no content and no way to log in.
 before compression. Always re-measure with `npm run build:cms && npm run start
 --workspace @amber/cms` before concluding anything is slow.
 
-## Publishing a post does not put it on the site
+## Publishing a post → getting it on the site
 
 The site is static. `getStaticPaths` in `posts/[slug].astro` decides which post
-pages exist, and **Astro caches its result for the life of the dev server**,
-re-running it only when that file changes.
+pages exist, and **Astro caches that result for the life of the dev server**,
+re-running it only when the file changes. Left alone this produces a confusing
+split: a published post appears on the homepage and `/posts` at once (those
+refetch per request) while its own page 404s.
 
-So after publishing in the CMS you get a confusing split: the post appears on
-the homepage and `/posts` immediately (those call `getPosts()` per request), but
-its own page 404s. That is not a bug in the post — the page has not been
-created yet.
+`src/hooks/revalidate-site.ts` (afterChange + afterDelete on Posts) closes that:
 
-```
-npm run refresh:web     # touches [slug].astro; paths recompute in ~2s
-```
+| | What the hook does |
+|---|---|
+| **dev** | Touches `posts/[slug].astro`. Both apps are on one machine, so the page is live ~3s after Publish. Nothing to run by hand. |
+| **production** | POSTs to `SITE_DEPLOY_HOOK_URL` to trigger a rebuild. **Without that variable it only logs a warning** — the post will not reach the built site. |
 
-For production, a new post needs `npm run build` — there is no live rendering.
-Before deploying, wire a rebuild to publishing (a Payload `afterChange` hook on
-Posts hitting a deploy hook), or the author will publish into silence.
+Set `SITE_DEPLOY_HOOK_URL` when you deploy, or the author publishes into silence.
+`npm run refresh:web` remains as a manual fallback.
+
+The hook never blocks a save: every failure is caught and logged. Losing a
+rebuild is a nuisance; losing someone's writing is not.
 
 **`export const prerender = false` does not fix this.** The site is
 `output: 'static'` with no adapter, so Astro has nowhere to render on demand and
