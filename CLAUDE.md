@@ -97,6 +97,36 @@ CMS comes up with no content and no way to log in.
 before compression. Always re-measure with `npm run build:cms && npm run start
 --workspace @amber/cms` before concluding anything is slow.
 
+## Poem autofill (Claude)
+
+The "कविता से भरिए" panel at the top of the post editor takes a pasted poem and
+fills title, slug, excerpt, category, date and body. Needs `ANTHROPIC_API_KEY`
+in the root `.env`; without it the panel returns a clear error rather than
+failing silently.
+
+- **Endpoint:** `POST /api/draft-from-poem` (`src/endpoints/draft-from-poem.ts`),
+  staff-only. **UI:** `src/components/PoemAutofill.tsx`, mounted as a `ui` field.
+- **Model `claude-opus-5`**, structured outputs via `messages.parse()` + a Zod
+  schema, so there is no JSON parsing or retry loop. Effort `medium` — this is
+  classification and transliteration, not deep reasoning.
+- **Claude returns classified segments, never Lexical JSON.** It decides which
+  lines are verse, quoted lyric, centred, or prose; `src/lib/lexical-nodes.ts`
+  builds the actual nodes. Asking a model for Lexical directly means trusting it
+  to get `format`/`indent`/`version` right on every node, where one bad field
+  breaks the editor.
+- **Deterministic work stays in code:** the Hindi date, sort order, slug
+  sanitising and uniqueness. Claude only supplies the *transliteration*.
+- **Those node builders are shared** with `scripts/migrate-markdown.ts`. Both
+  paths must emit identical structures — change one, check the other, and keep
+  both in step with `packages/shared/src/lexical.ts`, which renders them back to
+  HTML.
+- The panel **never silently overwrites**: if the form already has a title or
+  body it asks before replacing.
+
+⚠️ Re-running `migrate:markdown` sets `_status` from each file's frontmatter, so
+it will **re-publish the guide post** that was deliberately set to draft. Set it
+back afterwards.
+
 ## Gotchas worth knowing
 
 - **`turbopack.root` must be the repo root**, not `apps/cms`. npm hoists `next`

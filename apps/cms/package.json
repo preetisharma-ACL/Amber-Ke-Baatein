@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@amber/shared": "*",
+    "@anthropic-ai/sdk": "^0.115.0",
     "@payloadcms/db-postgres": "3.87.0",
     "@payloadcms/next": "3.87.0",
     "@payloadcms/richtext-lexical": "3.87.0",

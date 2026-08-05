@@ -430,6 +430,100 @@ h1 {
   background: var(--amber-terracotta-soft);
 }
 
+/* ═════ "कविता से भरिए" पैनल / the Claude autofill panel ═════════════════════
+   रचना के खानों से ऊपर बैठता है, इसलिए दिखने में अलग होना चाहिए — पर इतना नहीं
+   कि रचना से ध्यान हटे।
+   It sits above the real fields, so it needs to read as a distinct tool rather
+   than as another field — but muted enough that the writing stays the focus. */
+.poem-autofill {
+  border: 1px solid var(--theme-elevation-150);
+  border-left: 3px solid var(--amber-terracotta);
+  border-radius: 10px;
+  background: var(--theme-elevation-50);
+  padding: 1rem 1.15rem 1.15rem;
+  margin-bottom: 1.75rem;
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.7rem;
+  }
+
+  &__title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--amber-terracotta);
+  }
+
+  &__hint {
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: var(--theme-elevation-500);
+  }
+
+  &__input {
+    width: 100%;
+    border-radius: 7px;
+    border: 1px solid var(--theme-elevation-200);
+    background: var(--theme-elevation-0);
+    padding: 0.7rem 0.85rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.85;
+    resize: vertical;
+
+    &:focus {
+      border-color: var(--amber-terracotta);
+      box-shadow: 0 0 0 3px var(--amber-terracotta-soft);
+      outline: none;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  &__note {
+    font-size: 0.82rem;
+    color: var(--theme-elevation-500);
+  }
+
+  /* नतीजे की पंक्तियाँ / result states. Each carries its own colour so the
+     outcome is readable without reading — green done, amber careful, red failed. */
+  &__ok,
+  &__warn,
+  &__error {
+    margin-top: 0.85rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 7px;
+    font-size: 0.86rem;
+    line-height: 1.7;
+  }
+
+  &__ok {
+    background: rgba(74, 114, 128, 0.1);
+    border: 1px solid rgba(74, 114, 128, 0.3);
+    color: var(--theme-elevation-700);
+  }
+
+  &__warn {
+    background: var(--amber-terracotta-soft);
+    border: 1px solid var(--amber-terracotta);
+    color: var(--theme-elevation-800);
+  }
+
+  &__error {
+    background: rgba(190, 60, 45, 0.08);
+    border: 1px solid rgba(190, 60, 45, 0.35);
+    color: var(--theme-error-600, #a33);
+  }
+}
+
 /* ═════ लॉगिन का पन्ना / login screen ════════════════════════════════════════ */
 .login {
   &__brand,

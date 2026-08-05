@@ -51,6 +51,20 @@ export const Posts: CollectionConfig = {
   },
   fields: [
     {
+      /**
+       * सबसे ऊपर का पैनल — कविता चिपकाइए, बाक़ी अपने-आप.
+       * A `ui` field stores nothing; it exists purely to mount the autofill
+       * panel above the real fields it populates.
+       */
+      name: 'poemAutofill',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/PoemAutofill#PoemAutofill',
+        },
+      },
+    },
+    {
       name: 'title',
       type: 'text',
       required: true,

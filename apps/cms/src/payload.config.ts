@@ -13,6 +13,7 @@ import sharp from 'sharp'
 
 import { VerseBlock } from './blocks/Verse'
 import { Categories } from './collections/Categories'
+import { draftFromPoem } from './endpoints/draft-from-poem'
 import { Comments } from './collections/Comments'
 import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
@@ -71,6 +72,10 @@ export default buildConfig({
    */
   defaultDepth: 0,
   collections: [Posts, Categories, Media, Comments, Users],
+
+  // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
+  // reachable at POST /api/draft-from-poem. Staff-only; see the handler.
+  endpoints: [draftFromPoem],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures,

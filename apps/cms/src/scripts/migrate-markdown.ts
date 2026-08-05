@@ -28,13 +28,20 @@ import {
   convertMarkdownToLexical,
   editorConfigFactory,
 } from '@payloadcms/richtext-lexical'
-import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getPayload } from 'payload'
 
 import config from '../payload.config'
+import {
+  CODE_LANGUAGES,
+  centeredParagraph,
+  codeBlockNode,
+  quoteNode,
+  verseBlockNode,
+  type LexNode,
+} from '../lib/lexical-nodes'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const POSTS_DIR = path.resolve(dirname, '../../../web/src/content/posts')
@@ -144,79 +151,9 @@ function parseHindiDate(value: string): Date | null {
 }
 
 // ── Lexical node builders ───────────────────────────────────────────────────
-
-type LexNode = Record<string, unknown>
-
-const textNode = (text: string): LexNode => ({
-  type: 'text',
-  text,
-  format: 0,
-  style: '',
-  mode: 'normal',
-  detail: 0,
-  version: 1,
-})
-
-const lineBreak = (): LexNode => ({ type: 'linebreak', version: 1 })
-
-/** पंक्तियों के बीच <br> / interleaves real linebreak nodes between lines. */
-function linesToChildren(lines: string[]): LexNode[] {
-  const children: LexNode[] = []
-  lines.forEach((line, i) => {
-    if (i > 0) children.push(lineBreak())
-    children.push(textNode(line))
-  })
-  return children
-}
-
-const quoteNode = (lines: string[]): LexNode => ({
-  type: 'quote',
-  version: 1,
-  format: '',
-  indent: 0,
-  direction: 'ltr',
-  children: linesToChildren(lines),
-})
-
-const centeredParagraph = (text: string): LexNode => ({
-  type: 'paragraph',
-  version: 1,
-  format: 'center',
-  indent: 0,
-  direction: 'ltr',
-  textFormat: 0,
-  textStyle: '',
-  children: [textNode(text)],
-})
-
-const verseBlockNode = (text: string): LexNode => ({
-  type: 'block',
-  version: 2,
-  format: '',
-  fields: {
-    id: crypto.randomBytes(12).toString('hex'),
-    blockName: '',
-    blockType: 'verse',
-    text,
-  },
-})
-
-/** Payload के premade CodeBlock का slug 'Code' है (बड़ा C). */
-const codeBlockNode = (language: string, code: string): LexNode => ({
-  type: 'block',
-  version: 2,
-  format: '',
-  fields: {
-    id: crypto.randomBytes(12).toString('hex'),
-    blockName: '',
-    blockType: 'Code',
-    language,
-    code,
-  },
-})
-
-/** CodeBlock सिर्फ़ जानी-पहचानी भाषाएँ लेता है / only known keys validate. */
-const CODE_LANGUAGES = new Set(['html', 'markdown', 'css', 'javascript', 'typescript', 'json', 'yaml', 'shell', 'plaintext'])
+// ये अब साझा हैं — Claude वाला autofill भी यही इस्तेमाल करता है।
+// Shared with the Claude autofill endpoint so both paths emit identical
+// structures; see src/lib/lexical-nodes.ts for why that matters.
 
 // ── body tokenisation ───────────────────────────────────────────────────────
 
