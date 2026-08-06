@@ -59,6 +59,61 @@ const HINDI_MONTHS = [
 
 const hindiDate = (d: Date) => `${d.getDate()} ${HINDI_MONTHS[d.getMonth()]} ${d.getFullYear()}`
 
+// ── श्रेणियों का मतलब / what each category actually means ────────────────────
+
+/**
+ * नाम काफ़ी नहीं — मतलब भी चाहिए / a name alone does not classify well.
+ *
+ * पहले prompt सिर्फ़ श्रेणियों के नाम भेजता था, और Claude नाम से अंदाज़ा लगाता था।
+ * "छोटी-छोटी खुशियाँ" जैसी रचना — जो असल में संस्मरण है पर सीख भी देती है —
+ * इसीलिए "मार्गदर्शन" में चली जाती थी।
+ *
+ * The prompt used to send bare category names and let the model infer what they
+ * meant. That guesses badly exactly where it matters: a memoir that happens to
+ * carry a lesson reads as "guidance" from the name alone, when the piece is
+ * fundamentally a remembered afternoon with one's father.
+ *
+ * ── सूची यहाँ तय नहीं होती / this is not the list ────────────────────────────
+ * श्रेणियाँ CMS से आती हैं, यहाँ से नहीं। यह सिर्फ़ मतलब बताता है। नई श्रेणी जुड़े
+ * और यहाँ उसका ज़िक्र न हो, तब भी वह चुनी जा सकती है — prompt कहता है कि नाम का
+ * अर्थ पढ़कर तय करो।
+ *
+ * The live list still comes from the database — this only annotates it. A
+ * category added in the CMS and not described here still appears and can still
+ * be chosen; the prompt tells the model to reason from the name's meaning. That
+ * way adding a category never requires a code change, and this map degrades to
+ * "no note" rather than to "cannot pick it".
+ */
+const CATEGORY_NOTES: Record<string, string> = {
+  कविता:
+    'poetry. Written in verse — rhyme or free verse — to move the reader rather ' +
+    'than to explain. Imagery, metaphor, rhythm. Choose it when the piece IS a ' +
+    'poem, not when a prose piece merely contains one.',
+  सुविचार:
+    'a short reflective or inspirational thought. Brief, self-contained, stands ' +
+    'on its own without surrounding context — a life lesson, a principle, a ' +
+    'piece of wisdom. Never use this for a long explanatory article.',
+  संस्मरण:
+    'memoir. A real experience, memory or incident, usually first person — ' +
+    'childhood, family, travel, a particular day. Still संस्मरण when the memory ' +
+    'carries a lesson, as long as the experience is the point.',
+  मार्गदर्शन:
+    'guidance. Primarily teaches, advises or explains: practical advice, steps, ' +
+    'how something works, how to do something better. A long piece explaining ' +
+    'habits or method is मार्गदर्शन, not सुविचार.',
+}
+
+/** श्रेणी की सूची, मतलब के साथ / the live list, annotated where we know the name. */
+const describeCategories = (categories: string[]) =>
+  categories.length
+    ? categories
+        .map((name) => {
+          const note = CATEGORY_NOTES[name]
+          return note ? `  - ${name} — ${note}` : `  - ${name}`
+        })
+        .join('\n')
+    : '  (none exist yet)'
+
 // ── prompt ──────────────────────────────────────────────────────────────────
 
 // जाँच के लिए export किया गया — असली prompt पर ही परखा जा सके, नक़ल पर नहीं.
@@ -87,9 +142,33 @@ summary; this author titles from his own lines.
 tell a reader what they are about to read. Under 300 characters. Do not
 editorialise or praise the work.
 
-**श्रेणी / category** — choose exactly one name from this list:
-${categories.length ? categories.map((c) => `  - ${c}`).join('\n') : '  (none exist yet)'}
-If none genuinely fits, return "" and a human will choose. Do not invent a name.
+**श्रेणी / category** — choose exactly one name from this list, copied exactly:
+${describeCategories(categories)}
+
+Never pick a category by keyword. Read the whole piece first and work out what
+the author was trying to do; classify what the writing fundamentally IS, not what
+it happens to mention. Weigh, in this order:
+
+  1. the author's intent      (highest)
+  2. the writing style
+  3. the overall theme
+  4. the tone
+  5. individual keywords      (lowest — a word appearing proves nothing)
+
+Where more than one could fit, choose the one matching the MAIN purpose:
+  - a personal story that teaches something is संस्मरण when the experience is
+    the point — a lesson drawn at the end does not make it मार्गदर्शन;
+  - a long article explaining how to build a habit is मार्गदर्शन, not सुविचार,
+    however inspiring it is;
+  - a few short standalone motivational lines are सुविचार;
+  - writing whose emotion is carried in verse is कविता.
+
+A category may be listed above without a description — one added since this
+prompt was written. Judge it from the meaning of its name and the same rules;
+being undescribed does not make it a worse choice.
+
+If none genuinely fits, return "" and a human will choose. Do not invent a name,
+and do not pick a near-miss to avoid returning "".
 
 **segments** — split the body in order. This is the judgement that matters:
   - "verse"  — poetry. Put each poem in one segment; keep the line breaks, and
