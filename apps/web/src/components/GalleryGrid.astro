@@ -20,14 +20,32 @@ const emptySlots = Math.max(0, 3 - photos.length);
 
 <div class="gallery">
   {
-    photos.map((photo) => (
-      <div class="gal-item">
+    photos.map((photo, index) => (
+      /*
+        छपाई ख़ुद बटन है / the print itself is the button.
+        तस्वीर के ऊपर अलग से कोई पारदर्शी परत नहीं — पूरी छपाई दबाने लायक़ है,
+        इसलिए keyboard से भी वही चीज़ मिलती है जो माउस से.
+
+        The whole print is the control rather than an invisible overlay on top of
+        it: a keyboard user then reaches exactly what a mouse user clicks, and
+        the caption comes along for free as part of the accessible name.
+      */
+      <button
+        class="gal-item"
+        type="button"
+        data-index={index}
+        data-full={cloudinaryVariant(photo.url, 'w_1600,c_limit,f_auto,q_auto')}
+        data-caption={photo.caption}
+        data-alt={photo.alt}
+        aria-label={`बड़ा करके देखिए — ${photo.caption}`}
+      >
         <div class="frame">
           {/*
             आकार Cloudinary से माँगा जाता है, बनाया नहीं जाता.
             The size is requested from Cloudinary rather than stored: 840px wide
             covers a retina screen at the ~420px the frame renders, and f_auto
-            serves WebP or AVIF where the browser supports it.
+            serves WebP or AVIF where the browser supports it. The lightbox asks
+            for 1600 the same way — one stored original, two renditions.
           */}
           <img
             src={cloudinaryVariant(photo.url, 'w_840,c_limit,f_auto,q_auto')}
@@ -39,7 +57,7 @@ const emptySlots = Math.max(0, 3 - photos.length);
           />
         </div>
         <div class="caption">{photo.caption}</div>
-      </div>
+      </button>
     ))
   }
   {
@@ -57,6 +75,48 @@ const emptySlots = Math.max(0, 3 - photos.length);
     ))
   }
 </div>
+
+{
+  /*
+    बड़ी तस्वीर के लिए / the lightbox.
+
+    ── `<dialog>` इसीलिए / why a native <dialog> ────────────────────────────────
+    बना-बनाया modal: Escape अपने-आप बंद करता है, पीछे का पन्ना अपने-आप निष्क्रिय
+    हो जाता है, और focus बाहर नहीं भागता। यही सब हाथ से लिखने पर आधा ही सही बनता
+    है — और जो आधा छूटता है वह हमेशा keyboard वाले हिस्से का होता है।
+
+    `showModal()` gives Escape-to-close, an inert background, focus containment
+    and the top layer for free. Hand-rolled modals reimplement about half of
+    that, and the half left out is always the keyboard half.
+
+    तस्वीरें एक ही हैं — modal एक ही है / one dialog, reused. Building one per
+    photograph would put six full-size <img> tags in the page for a reader who
+    may never open any of them.
+  */
+}
+<dialog class="lightbox" aria-label="बड़ी तस्वीर">
+  <button class="lightbox__close" type="button" data-close aria-label="बंद कीजिए">×</button>
+
+  <button class="lightbox__nav is-prev" type="button" data-step="-1" aria-label="पिछली तस्वीर">
+    ‹
+  </button>
+
+  <figure class="lightbox__figure">
+    {/*
+      पहले वही तस्वीर जो जाली में दिख रही थी, फिर बड़ी वाली.
+      The grid rendition is shown first because the browser already has it — the
+      picture appears the instant the dialog opens, and the 1600px version
+      replaces it when it arrives. Waiting for the large file would mean an empty
+      black rectangle on a slow connection, which reads as a broken click.
+    */}
+    <img class="lightbox__img" alt="" />
+    <figcaption class="lightbox__caption"></figcaption>
+  </figure>
+
+  <button class="lightbox__nav is-next" type="button" data-step="1" aria-label="अगली तस्वीर">
+    ›
+  </button>
+</dialog>
 
 <style>
   /**
@@ -135,6 +195,27 @@ const emptySlots = Math.max(0, 3 - photos.length);
     box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55);
     position: relative;
     transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+
+    /* अब यह <button> है / it is a <button> now — undo what the browser gives a
+       button so the print looks exactly as it did as a div. */
+    display: block;
+    width: 100%;
+    border: 0;
+    font: inherit;
+    /* इशारा कि दबाने पर बड़ी होगी / the cursor is the only hint that a print
+       opens, so it says "zoom" rather than "link". */
+    cursor: zoom-in;
+  }
+
+  /* ख़ाली फ़्रेम दबाने लायक़ नहीं / an empty slot is still a div, and must not
+     look clickable — there is nothing behind it to open. */
+  .gal-empty {
+    cursor: default;
+  }
+
+  .gal-item:focus-visible {
+    outline: 2px solid var(--kite);
+    outline-offset: 4px;
   }
 
   /* हर तस्वीर थोड़ी टेढ़ी / each print sits at a slight angle */
@@ -226,4 +307,287 @@ const emptySlots = Math.max(0, 3 - photos.length);
     font-size: 0.82rem;
     color: #7b6a55;
   }
+
+  /* =========================================================
+     बड़ी तस्वीर / the lightbox
+     ========================================================= */
+
+  .lightbox {
+    /* पूरे परदे पर, पर किनारों पर थोड़ी जगह छोड़कर / fill the screen but keep a
+       margin, so it reads as a picture held up rather than a page replaced. */
+    width: min(96vw, 1600px);
+    max-width: none;
+    height: min(94vh, 1200px);
+    max-height: none;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+    color: var(--paper);
+  }
+
+  /* पीछे का पन्ना गहरा हो जाए / the page behind goes dark and slightly soft,
+     so nothing competes with the photograph. */
+  .lightbox::backdrop {
+    background: rgba(8, 6, 6, 0.92);
+    backdrop-filter: blur(3px);
+  }
+
+  .lightbox[open] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    animation: lightboxIn 0.28s ease both;
+  }
+
+  @keyframes lightboxIn {
+    from {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+  }
+
+  .lightbox__figure {
+    margin: 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+  }
+
+  .lightbox__img {
+    /**
+     * पूरी तस्वीर, कटी हुई नहीं / the whole photograph, never cropped.
+     * जाली में जगह के लिए काटना पड़ता है — यहाँ नहीं। असली तस्वीर देखने के लिए ही
+     * तो कोई इसे खोलता है।
+     *
+     * The grid crops to keep the prints uniform. Here it must not: seeing the
+     * picture whole is the entire reason for opening it.
+     */
+    max-width: 100%;
+    max-height: calc(94vh - 5rem);
+    object-fit: contain;
+    display: block;
+    border-radius: 4px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    /* बड़ी फ़ाइल आने तक छोटी वाली धुँधली दिखे / while the full-size file is on
+       its way the cached grid rendition stands in, very slightly dimmed so the
+       swap is visible rather than startling. */
+    transition: opacity 0.25s ease;
+  }
+
+  .lightbox__img.is-loading {
+    opacity: 0.72;
+  }
+
+  .lightbox__caption {
+    font-family: 'Kalam', cursive;
+    font-size: 1rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .lightbox__close,
+  .lightbox__nav {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: var(--paper);
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+  }
+
+  .lightbox__close:hover,
+  .lightbox__nav:hover {
+    background: rgba(224, 101, 76, 0.22);
+    border-color: var(--kite);
+  }
+
+  .lightbox__close:focus-visible,
+  .lightbox__nav:focus-visible {
+    outline: 2px solid var(--kite);
+    outline-offset: 3px;
+  }
+
+  .lightbox__nav {
+    width: 2.9rem;
+    height: 2.9rem;
+    font-size: 1.7rem;
+  }
+
+  .lightbox__close {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    width: 2.4rem;
+    height: 2.4rem;
+    font-size: 1.5rem;
+    z-index: 2;
+  }
+
+  /* एक ही तस्वीर हो तो आगे-पीछे का कोई मतलब नहीं / with a single photograph
+     there is nowhere to step, so the arrows are removed rather than disabled. */
+  .lightbox.is-single .lightbox__nav {
+    display: none;
+  }
+
+  /**
+   * छोटे परदे पर तीर तस्वीर के ऊपर / on a phone the arrows sit over the picture.
+   * तीन खाने में बाँटने पर तस्वीर के लिए कुछ बचता ही नहीं.
+   * Three columns leave the photograph almost no width on a narrow screen, so
+   * the arrows float above it instead of taking a column each.
+   */
+  @media (max-width: 40rem) {
+    .lightbox[open] {
+      display: block;
+      position: relative;
+    }
+
+    .lightbox__nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+
+    .lightbox__nav.is-prev {
+      left: 0.2rem;
+    }
+
+    .lightbox__nav.is-next {
+      right: 0.2rem;
+    }
+  }
+
+  /* जिन्हें हलचल से तकलीफ़ होती है / respect a reduced-motion preference. */
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox[open] {
+      animation: none;
+    }
+  }
 </style>
+
+<script>
+  /**
+   * तस्वीर बड़ी करके दिखाइए / open a photograph full size.
+   *
+   * ── नया कुछ माँगा नहीं जाता / nothing is fetched up front ───────────────────
+   * हर छपाई अपने साथ बड़ी तस्वीर का पता लेकर बैठी है (`data-full`). कोई पन्ना
+   * खोले और एक भी तस्वीर न दबाए, तो बड़ी फ़ाइल कभी उतरती ही नहीं।
+   *
+   * Each print carries the URL of its full-size rendition in `data-full`. A
+   * reader who never opens one never downloads one — which matters on a phone
+   * connection more than any amount of clever preloading would.
+   */
+  const dialog = document.querySelector<HTMLDialogElement>('.lightbox');
+  const prints = [...document.querySelectorAll<HTMLButtonElement>('.gal-item[data-full]')];
+
+  if (dialog && prints.length) {
+    const img = dialog.querySelector<HTMLImageElement>('.lightbox__img')!;
+    const caption = dialog.querySelector<HTMLElement>('.lightbox__caption')!;
+
+    // एक ही तस्वीर हो तो तीर छिपा दीजिए / hide the arrows when there is one photo
+    dialog.classList.toggle('is-single', prints.length === 1);
+
+    let current = 0;
+    /** किस तस्वीर का इंतज़ार है / which photo the in-flight load belongs to.
+        तेज़ी से तीर दबाने पर पुरानी फ़ाइल बाद में आकर नई को बदल न दे — this stops
+        a slow earlier load from overwriting a newer one when arrows are pressed
+        faster than the images arrive. */
+    let pending = 0;
+
+    // तीर वाला रूप, `function` नहीं / arrow functions rather than declarations:
+    // a hoisted `function` could in principle run before the null check above,
+    // so TypeScript refuses to carry the narrowing of `dialog` into one.
+    const open = (index: number) => {
+      const print = prints[index];
+      if (!print) return;
+      current = index;
+      const token = ++pending;
+
+      // पहले वही तस्वीर जो पहले से उतरी हुई है / start from the cached grid
+      // rendition so something appears immediately, then swap when the full
+      // file arrives. An empty frame would read as a click that did nothing.
+      const thumb = print.querySelector('img');
+      img.src = thumb?.currentSrc || thumb?.src || '';
+      img.alt = print.dataset.alt ?? '';
+      caption.textContent = print.dataset.caption ?? '';
+      img.classList.add('is-loading');
+
+      const full = print.dataset.full;
+      if (full) {
+        const loader = new Image();
+        loader.onload = () => {
+          if (token !== pending) return; // पुरानी माँग / a superseded load
+          img.src = full;
+          img.classList.remove('is-loading');
+        };
+        // न उतर पाए तो छोटी वाली ही रहने दीजिए / on failure keep the thumbnail;
+        // a smaller picture beats a broken one.
+        loader.onerror = () => {
+          if (token === pending) img.classList.remove('is-loading');
+        };
+        loader.src = full;
+      } else {
+        img.classList.remove('is-loading');
+      }
+
+      if (!dialog.open) dialog.showModal();
+    }
+
+    /** आगे-पीछे, गोल घूमकर / step through, wrapping at either end. */
+    function step(by: number) {
+      open((current + by + prints.length) % prints.length);
+    }
+
+    for (const [index, print] of prints.entries()) {
+      print.addEventListener('click', () => open(index));
+    }
+
+    for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-step]')) {
+      button.addEventListener('click', () => step(Number(button.dataset.step)));
+    }
+
+    dialog
+      .querySelector<HTMLButtonElement>('[data-close]')
+      ?.addEventListener('click', () => dialog.close());
+
+    // तीरों से चलिए / arrow keys, as anyone who has used a photo viewer expects.
+    // Escape को `<dialog>` ख़ुद सँभालता है / Escape is handled by <dialog> itself.
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        step(1);
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        step(-1);
+      }
+    });
+
+    /**
+     * तस्वीर के बाहर दबाने पर बंद / clicking outside the picture closes it.
+     *
+     * `<dialog>` पर आया click तभी उसका अपना होता है जब वह backdrop पर पड़ा हो —
+     * अंदर के हिस्सों पर पड़ा click उन्हीं का target होता है. A click whose
+     * target is the dialog element itself can only have landed on the backdrop,
+     * since every visible part of the dialog is a child. That is what makes this
+     * one line enough, without measuring coordinates.
+     */
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    // बंद होते ही बड़ी फ़ाइल छोड़ दीजिए / drop the full-size image on close so it
+    // is not held in memory while the reader carries on down the page.
+    dialog.addEventListener('close', () => {
+      img.removeAttribute('src');
+      pending++;
+    });
+  }
+</script>
