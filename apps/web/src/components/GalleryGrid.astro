@@ -59,11 +59,40 @@ const emptySlots = Math.max(0, 3 - photos.length);
 </div>
 
 <style>
+  /**
+   * एक कतार में तीन / three to a row.
+   *
+   * पहले यह `auto-fill, minmax(13rem, 1fr)` था — यानी कितनी तस्वीरें एक कतार में
+   * आएँगी, यह जगह के हिसाब से अपने आप तय होता था। तीन के लिए 43.4rem चाहिए और
+   * `.wrap-wide` के भीतर उतनी जगह मुश्किल से बचती है, इसलिए ज़रा-सी कमी पर भी वह
+   * दो पर आ जाता था — बिना कुछ बताए।
+   *
+   * This was `auto-fill, minmax(13rem, 1fr)`, which lets the browser decide how
+   * many fit. Three columns need 43.4rem and the wrapper leaves barely that, so
+   * the layout kept silently dropping to two. Three is a deliberate choice about
+   * how the wall should look, not something to be inferred from arithmetic —
+   * so it is stated.
+   */
   .gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 2.2rem;
     margin: 2rem 0 1rem;
+  }
+
+  /* छोटे परदे पर दो, फिर एक / two on a tablet, one on a phone — three prints
+     side by side on a narrow screen would be too small to see anything in. */
+  @media (max-width: 46rem) {
+    .gallery {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.6rem;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .gallery {
+      grid-template-columns: 1fr;
+    }
   }
 
   .gal-item {
