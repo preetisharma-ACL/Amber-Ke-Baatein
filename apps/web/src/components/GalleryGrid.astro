@@ -16,7 +16,6 @@ const photos = await getGallery();
 
 /** कम से कम तीन ख़ाने / pad to three so the grid never looks abandoned. */
 const emptySlots = Math.max(0, 3 - photos.length);
-
 ---
 
 <div class="gallery wrap-wide">
@@ -89,48 +88,17 @@ const emptySlots = Math.max(0, 3 - photos.length);
     z-index: 2;
   }
 
-  /**
-   * हर फ़्रेम एक ही नाप का / every frame the same size.
-   *
-   * एक बार हर फ़्रेम को उसकी तस्वीर के नाप का बनाकर देखा था — कटना तो बंद हुआ,
-   * पर दीवार बेतरतीब लगने लगी: एक छपाई दूसरी से दुगुनी ऊँची। अब नाप सबका एक है
-   * और तस्वीर उसके भीतर पूरी बैठती है।
-   *
-   * An earlier attempt sized each frame to its own photograph. That did stop the
-   * cropping, but it made the wall look untidy — one print twice the height of
-   * the one beside it. A gallery of prints reads as a set; the set matters more
-   * than each photograph filling its paper edge to edge.
-   *
-   * चौकोर इसलिए कि खड़ी और पड़ी, दोनों तरह की तस्वीरों के साथ एक जैसा बर्ताव हो.
-   * Square, so a portrait and a landscape are treated alike: each gives up a
-   * little width or a little height, neither is favoured.
-   */
   .frame {
     position: relative;
     overflow: hidden;
     aspect-ratio: 1 / 1;
-    /* तस्वीर के इर्द-गिर्द दिखने वाला काग़ज़ / the mount the photo sits on —
-       card के रंग से ज़रा गहरा, ताकि यह जान-बूझकर लगे, कमी नहीं. */
     background: #e6ded2;
   }
 
   .frame :global(img) {
     width: 100%;
     height: 100%;
-    /**
-     * कुछ भी काटिए मत / never crop.
-     *
-     * `cover` फ़्रेम को भर देता है, पर जो बाहर पड़े उसे काटकर — खड़ी तस्वीर का
-     * सिर इसी तरह ग़ायब हुआ था। `contain` पूरी तस्वीर दिखाता है और बची जगह में
-     * काग़ज़ छोड़ देता है — जैसे असली फ़ोटो mount board पर चिपकी हो।
-     *
-     * This is what makes one frame size safe for every shape. `cover` fills the
-     * box by cutting off whatever overflows — that is what removed the top of
-     * someone's head. `contain` shows the whole photograph and leaves paper in
-     * the remaining space, so a tall photo gives up a little width and a wide
-     * one a little height, but neither loses any of the picture.
-     */
-    object-fit: contain;
+    object-fit: cover;
     display: block;
     filter: sepia(0.26) saturate(0.8) contrast(0.93) brightness(1.05);
   }
