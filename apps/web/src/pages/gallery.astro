@@ -13,22 +13,15 @@ import GalleryGrid from '../components/GalleryGrid.astro';
     </div>
 
     <GalleryGrid />
-
-    <p class="foot-note">तस्वीरें भेज दीजिए, यहाँ लग जाएँगी।</p>
   </section>
 </BaseLayout>
 
 <style>
-  .foot-note {
-    text-align: center;
-    color: var(--ink-faint);
-    font-size: 0.9rem;
-    font-style: italic;
-    /* जाली अब पन्ने से चौड़ी है, इसलिए इस पंक्ति को उससे साफ़ हटकर बैठना चाहिए —
-       वरना यह आख़िरी कतार का हिस्सा लगती है / the grid is now wider than the
-       page, so this line needs to sit clear of it rather than reading as part
-       of the last row of prints. */
-    margin-top: 2.5rem;
-    padding-bottom: 1rem;
+  /* जाली पन्ने से चौड़ी है और उसके नीचे अब कुछ नहीं — इसलिए नीचे थोड़ी जगह यहाँ
+     चाहिए, वरना आख़िरी कतार footer से चिपक जाती है / the grid is wider than the
+     page and nothing follows it now, so the breathing room it used to get from
+     the closing line has to come from here instead. */
+  .page {
+    padding-bottom: 2.5rem;
   }
 </style>
