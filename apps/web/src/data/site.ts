@@ -20,17 +20,17 @@ export interface SocialLink {
 
 export const site = {
   title: 'अम्बर की बातें',
-  description: 'अम्बर की बातें — कविताएँ और कुछ अधूरी बातें। अलोक कुमार सिंह।',
+  description: 'अम्बर की बातें — कविताएँ और कुछ अधूरी बातें। आलोक कुमार सिंह।',
   ogDescription: 'कुछ कविताएँ, कुछ अधूरी बातें — जो कही नहीं जा सकीं।',
   tagline: ['कुछ कविताएँ, कुछ अधूरी बातें', '— जो कही नहीं जा सकीं'],
-  byline: 'अलोक कुमार सिंह',
+  byline: 'आलोक कुमार सिंह',
   role: 'कवि',
   bio: 'यहाँ अपने बारे में दो-तीन पंक्तियाँ लिखिए — आप कहाँ के हैं, कब से लिखते हैं, और क्यों लिखते हैं। ज़्यादा औपचारिक मत कीजिए।',
-  signature: 'अलोक',
+  signature: 'आलोक',
   portraitCaption: 'अपनी गली में',
   portraitDatestamp: "'२६ ०१ ०८",
   handle: '@ambarkibaatein',
-  copyright: '© अलोक कुमार सिंह',
+  copyright: '© आलोक कुमार सिंह',
   email: 'alok@aajneeti.social',
 } as const;
 

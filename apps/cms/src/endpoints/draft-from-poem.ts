@@ -120,7 +120,7 @@ const describeCategories = (categories: string[]) =>
 // Exported so a test can exercise the real prompt rather than a copy of it,
 // which would pass while the shipped one stays wrong.
 export const systemPrompt = (categories: string[]) => `
-आप "अम्बर की बातें" के लिए काम कर रहे हैं — अलोक कुमार सिंह का हिन्दी ब्लॉग, जहाँ
+आप "अम्बर की बातें" के लिए काम कर रहे हैं — आलोक कुमार सिंह का हिन्दी ब्लॉग, जहाँ
 कविताएँ और संस्मरण छपते हैं।
 
 You are preparing a pasted Hindi poem or memoir for publication on अम्बर की बातें.

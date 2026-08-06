@@ -6,7 +6,7 @@
 
 ## 1. साधारण भाषा में / In plain language
 
-**अम्बर की बातें** अलोक कुमार सिंह का हिन्दी ब्लॉग है — कविताएँ और संस्मरण।
+**अम्बर की बातें** आलोक कुमार सिंह का हिन्दी ब्लॉग है — कविताएँ और संस्मरण।
 
 This is a Hindi literary blog. Not a magazine, not a business site: one person's
 poems and remembrances, published so that a reader might find their own feeling
@@ -22,7 +22,7 @@ Everything technical exists to get a poem onto a screen and out of the way.
 
 | भूमिका / Role | कौन / Who | क्या करते हैं / What they do |
 |---|---|---|
-| लेखक / Author | अलोक कुमार सिंह | Writes the poems and memoirs |
+| लेखक / Author | आलोक कुमार सिंह | Writes the poems and memoirs |
 | प्रकाशक / Publisher | निदेशक जी (the director) | Publishes posts through the admin panel, approves comments |
 | डेवलपर / Developer | you | Runs and maintains the two apps |
 | पाठक / Readers | anyone | Read, like, share, comment |
