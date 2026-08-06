@@ -537,3 +537,96 @@ h1 {
   scrollbar-color: var(--theme-elevation-300) transparent;
   scrollbar-width: thin;
 }
+
+/* ═════ चुनी हुई रचनाओं वाली पट्टी / the bulk-action bar ══════════════════════
+
+   सूची में कुछ चुनने पर ऊपर "Edit  Publish  Unpublish  Delete" आते हैं। Payload
+   इन्हें रेखांकित लिखावट भर बनाता है — पढ़ने में कड़ियाँ लगती हैं, बटन नहीं। और
+   Delete इनके बीच बिलकुल वैसा ही दिखता है जैसे Edit, जबकि एक बदला जा सकता है
+   और दूसरा नहीं।
+
+   Payload renders these four as underlined text, so they read as links rather
+   than as actions — and Delete looks exactly like Edit while being the one that
+   cannot be undone. These give them a button's shape and set Delete apart.
+
+   ── किस पर क्या लगता है / what can actually be targeted ─────────────────────
+   सिर्फ़ दो हुक भरोसेमंद हैं: `.list-selection__button` चारों पर, और
+   `.delete-documents__toggle` अकेले Delete पर. Edit, Publish और Unpublish के
+   पास अपनी कोई class नहीं — तीनों एक जैसे ही रेंडर होते हैं.
+
+   Only two hooks are reliable: `.list-selection__button` on all four, and
+   `.delete-documents__toggle`, which Payload puts on Delete alone. Edit,
+   Publish and Unpublish carry no distinguishing class — verified in
+   @payloadcms/ui, not guessed. Publish is picked out below by its aria-label,
+   which is translated; in a non-English admin it simply falls back to the
+   shared style, which is why the shared style has to stand on its own.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.list-selection {
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.list-selection__actions {
+  gap: 0.5rem;
+}
+
+.list-selection__button {
+  /* रेखांकन हटाकर असली आकार / drop the underline and give it an edge */
+  text-decoration: none;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 2rem;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--theme-elevation-700);
+  background: var(--theme-elevation-0);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.list-selection__button:hover {
+  border-color: var(--amber-terracotta);
+  color: var(--amber-terracotta);
+  background: var(--amber-terracotta-soft);
+}
+
+.list-selection__button:focus-visible {
+  outline: 2px solid var(--amber-terracotta);
+  outline-offset: 2px;
+}
+
+/* छापना ही मुख्य काम है / Publish is the action the author came for, so it is
+   the only filled one — the rest stay quiet outlines beside it. */
+.list-selection__button[aria-label='Publish'] {
+  background: var(--amber-terracotta);
+  border-color: var(--amber-terracotta);
+  color: #fff;
+}
+
+.list-selection__button[aria-label='Publish']:hover {
+  background: var(--amber-terracotta-hover);
+  border-color: var(--amber-terracotta-hover);
+  color: #fff;
+}
+
+/* मिटाना लौटाया नहीं जा सकता / Delete cannot be undone, so it must not look
+   like its neighbours. Quiet until reached for, unmistakable once it is —
+   a permanently red button in a row of four invites the mis-click it warns
+   about. */
+.delete-documents__toggle.list-selection__button {
+  color: #a8352a;
+  border-color: rgba(168, 53, 42, 0.32);
+}
+
+.delete-documents__toggle.list-selection__button:hover {
+  background: #a8352a;
+  border-color: #a8352a;
+  color: #fff;
+}
+
+.delete-documents__toggle.list-selection__button:focus-visible {
+  outline-color: #a8352a;
+}
