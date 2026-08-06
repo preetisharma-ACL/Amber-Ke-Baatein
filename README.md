@@ -1,172 +1,116 @@
 # अम्बर की बातें
 
-अलोक कुमार सिंह की कविताएँ और कुछ अधूरी बातें।
-An [Astro](https://astro.build) site — static, no backend, no CMS.
+अलोक कुमार सिंह की कविताएँ, संस्मरण और कुछ अधूरी बातें।
+Poems and memoir by Alok Kumar Singh — a Hindi literary site with its own CMS.
+
+रचनाएँ अब `/admin` से लिखी और छापी जाती हैं। साइट स्थिर (static) रहती है, इसलिए
+पढ़ने वाले को कभी database का इंतज़ार नहीं करना पड़ता।
+
+Writing happens in an admin panel; the public site stays static, so a reader
+never waits on a database.
+
+---
+
+## ढाँचा / What is in here
+
+npm-workspaces monorepo — दो चलने वाले app, एक साझा package.
+
+```
+apps/web          Astro 7   — the public site (static)
+apps/cms          Payload 3 on Next.js 16 — admin panel + REST/GraphQL API
+packages/shared   types and constants both apps import
+```
+
+| | |
+| --- | --- |
+| सामग्री / content | **Neon Postgres** — Payload owns the schema |
+| तस्वीरें, आवाज़ / uploads | **Cloudinary** — never local disk |
+| भरने में मदद / autofill | **Claude** (`claude-haiku-4-5`) turns a pasted poem into a filled form |
+
+साइट build के वक़्त CMS से रचनाएँ पढ़ती है — इसीलिए **साइट बनाने के लिए CMS का
+चलना ज़रूरी है**. The site fetches from the CMS at build time, so the CMS must be
+running to build the site.
 
 ---
 
 ## चलाने के लिए / Running it
 
+सब कुछ repo की जड़ से चलाइए — किसी app के अंदर `npm install` मत कीजिए, वह
+workspace hoisting से टकराता है.
+
+Run everything from the repo root. Never `npm install` inside an app; it fights
+the workspace hoisting.
+
 ```bash
+cp .env.example .env    # भरिए / fill it in — see below
 npm install
-npm run dev      # http://localhost:4321
+npm run dev             # दोनों एक साथ / both apps
 ```
 
 | कमांड / command | क्या करता है / what it does |
 | --- | --- |
-| `npm run dev` | डेवलपमेंट सर्वर / dev server with live reload |
-| `npm run build` | `dist/` में पूरी साइट बनाता है / builds the static site |
-| `npm run preview` | बनी हुई साइट देखने के लिए / serves the built site |
+| `npm run dev` | दोनों app / both apps together |
+| `npm run dev:web` | सिर्फ़ Astro → http://localhost:4321 |
+| `npm run dev:cms` | सिर्फ़ Payload → http://localhost:3456/admin |
+| `npm run build` | पहले cms, फिर web / cms first, then web |
 | `npm run check` | टाइप जाँच / typecheck (`astro check`) |
+| `npm run generate:types` | Payload के types दोबारा बनाइए / regenerate `payload-types.ts` |
+
+**CMS 3456 पर चलता है, 3000 पर नहीं** — इस मशीन पर 3000–3111 दूसरे projects ने
+घेर रखे हैं. The CMS runs on **3456** because 3000–3111 are taken by other
+projects on the original machine; to move it, change both
+`apps/cms/package.json` and the root `.env`.
 
 ---
 
-## नई रचना कैसे जोड़ें / Adding a new poem
+## नई रचना कैसे जोड़ें / Adding a poem
 
-**सिर्फ़ एक फ़ाइल बनानी है।** और कहीं कुछ नहीं बदलना।
+`/admin` खोलिए और लिख दीजिए। **कोई फ़ाइल नहीं बनानी।**
 
-1. `src/content/posts/` में एक नई `.md` फ़ाइल बनाइए।
-   फ़ाइल का नाम ही पता बन जाता है — `meri-nayi-rachna.md` → `/posts/meri-nayi-rachna`
-   इसलिए नाम अंग्रेज़ी अक्षरों में, छोटे, बीच में `-` लगाकर रखिए।
+Open `/admin` and write. No files, no deploy, no code.
 
-2. सबसे ऊपर दो `---` के बीच यह जानकारी डालिए:
+सबसे ऊपर **"कविता से भरिए"** का खाना है — कविता चिपकाइए, Claude शीर्षक, पता,
+झलक, श्रेणी, तारीख़ और पूरा शरीर भर देता है। बदलना हो तो हाथ से बदल लीजिए।
 
-   ```markdown
-   ---
-   date: '10 अगस्त 2026'
-   category: 'कविता'
-   title: 'रचना का नाम'
-   excerpt: 'सूची में दिखने वाली एक-दो पंक्तियाँ…'
-   order: 30
-   ---
-   ```
+The **"कविता से भरिए"** panel at the top of the post editor takes a pasted poem
+and fills in the title, slug, excerpt, category, date and body. Everything
+remains editable afterwards; it never overwrites a filled-in form without
+asking.
 
-3. नीचे रचना लिखिए। बस।
+> ⚠️ `apps/web/src/content/posts/` की markdown फ़ाइलें **मरी हुई हैं**. They were
+> the source before the migration and are kept only as a backup. Editing them
+> changes nothing.
 
-रचना अपने आप **होम पन्ने पर, `/posts` पर, और `/category` पर** आ जाएगी।
-नई श्रेणी लिखेंगे तो श्रेणी का बटन भी अपने आप बन जाएगा।
-
-> Create one Markdown file in `src/content/posts/`, fill in the frontmatter,
-> write the body. It appears on the homepage, `/posts` and `/category`
-> automatically — and its category chip is created automatically too.
-> This replaces the old two-step process (edit the `POSTS` array, then paste an
-> `<article>` into the HTML) used by the single-file build.
-
-### फ़्रंटमैटर के खाने / Frontmatter fields
-
-| खाना / field | ज़रूरी? | क्या है / what it is |
-| --- | --- | --- |
-| `date` | हाँ | जैसा लिखेंगे वैसा ही दिखेगा — `'1 अगस्त 2026'` भी, `'आने वाली रचना'` भी। JS Date में नहीं बदला जाता। |
-| `category` | हाँ | `'संस्मरण'`, `'कविता'`, `'मार्गदर्शन'` — जो भी हो |
-| `title` | हाँ | रचना का नाम |
-| `excerpt` | हाँ | सूची में दिखने वाली झलक |
-| `order` | नहीं (डिफ़ॉल्ट `0`) | क्रम — **बड़ा नंबर पहले दिखता है**। नई रचना को पिछली से बड़ा नंबर दीजिए। |
-| `draft` | नहीं (डिफ़ॉल्ट `false`) | `true` कर दीजिए तो रचना कहीं नहीं दिखेगी |
-
-`date` को क्रम के लिए इस्तेमाल नहीं किया जा सकता, क्योंकि "1 अगस्त 2026" जैसी
-हिन्दी तारीख़ को JavaScript पढ़ नहीं सकता — इसीलिए `order` है।
-
-### रचना के अंदर क्या कैसे लिखें / Writing the body
-
-**गद्य / prose** — सादा लिखिए, पैराग्राफ़ के बीच एक खाली पंक्ति:
-
-```markdown
-पहला पैराग्राफ़।
-
-दूसरा पैराग्राफ़।
-```
-
-**कविता / a poem block** — सीधे HTML लिखिए (Markdown में HTML चलता है):
-
-```html
-<div class="verse">
-  <div class="stanza">
-    पहली पंक्ति<br>
-    दूसरी पंक्ति
-  </div>
-  <div class="stanza">
-    अगला बंद
-  </div>
-</div>
-```
-
-**किसी और का गीत / a quoted lyric** — बीच में, तिरछे अक्षरों में:
-
-```html
-<p class="lyric">पहली पंक्ति<br>दूसरी पंक्ति</p>
-```
-
-**बीचोंबीच एक पंक्ति / a single centred line**:
-
-```html
-<p class="center">वो भी यही चाहता होगा न?</p>
-```
-
-`✦ ✦ ✦` और "← सारी रचनाएँ" वाला बटन **अपने आप** नीचे लग जाते हैं —
-उन्हें हर रचना में लिखने की ज़रूरत नहीं।
+छापने के बाद रचना साइट पर अपने आप पहुँच जाती है — dev में सीधे, production में
+`SITE_DEPLOY_HOOK_URL` से. Publishing triggers a rebuild via a hook, so a
+published post reaches the static site on its own.
 
 ---
 
-## नई तस्वीर कैसे जोड़ें / Adding a gallery photo
+## पर्यावरण / Environment
 
-1. तस्वीर `src/assets/` में रख दीजिए।
-2. `src/data/gallery.ts` खोलिए, ऊपर उसे `import` कीजिए, और एक पंक्ति जोड़ दीजिए:
+एक ही `.env`, repo की जड़ में, दोनों app पढ़ते हैं। हर app के लिए अलग `.env` मत
+बनाइए — secret दोनों जगह अलग-अलग हो जाएगा.
 
-```ts
-import meriTasveer from '../assets/meri-tasveer.jpg';
+One `.env` at the repo root, read by both apps. Do not add per-app `.env` files;
+the values would drift apart. `.env.example` is the committed template and lists
+every variable with a note on where to get it.
 
-export const gallery: GalleryItem[] = [
-  { src: meriTasveer, caption: 'कैप्शन यहाँ' },
-  { caption: 'यहाँ एक तस्वीर' }, // src न देने पर खाली फ़्रेम दिखता है
-];
-```
-
-Astro तस्वीर को बिल्ड के वक़्त अपने आप छोटा और WebP में बदल देता है।
+`.env` कभी commit नहीं होता / `.env` is gitignored and has never been committed.
 
 ---
 
-## और क्या कहाँ बदलें / Where else to edit
+## और पढ़ने के लिए / Further reading
 
-| क्या बदलना है | कहाँ |
+| | |
 | --- | --- |
-| साइट का नाम, टैगलाइन, बायो, ईमेल, सोशल लिंक | `src/data/site.ts` |
-| मेन्यू की कड़ियाँ | `src/data/site.ts` (`nav`) |
-| फ़ेसबुक लिंक (अभी placeholder है) | `src/data/site.ts` (`socials` → `live: true` कर दीजिए) |
-| "यह क्यों" वाला गद्य | `src/pages/why.astro` |
-| रंग, फ़ॉन्ट, नाप | `src/styles/global.css` (`:root` वाले टोकन) |
-| होम की तस्वीरें | `src/assets/kite-sky.jpg`, `src/assets/alok-portrait.jpg` |
+| [`PROJECT.md`](PROJECT.md) | यह साइट क्या है और क्यों — तकनीकी और ग़ैर-तकनीकी, दोनों तरह से / what this project is and why, for both audiences |
+| [`CLAUDE.md`](CLAUDE.md) | बनाने वालों के लिए — जाल, फ़ैसले, और उनकी वजहें / working notes: the traps, the decisions and the reasons behind them |
 
----
+`CLAUDE.md` में वे बातें हैं जो code पढ़कर पता नहीं चलतीं — मसलन database दूसरे
+महाद्वीप पर है और हर SQL round trip ~280ms लेता है, इसलिए index लगाने से कुछ
+नहीं होगा.
 
-## ढाँचा / Structure
-
-```
-src/
-  assets/            तस्वीरें — Astro इन्हें ऑप्टिमाइज़ करता है
-  components/        दोहराए जाने वाले टुकड़े
-  content/posts/     हर रचना एक .md फ़ाइल
-  content.config.ts  रचनाओं का schema
-  data/              site.ts (स्थायी जानकारी), gallery.ts
-  layouts/           BaseLayout (हर पन्ना), PostLayout (हर रचना)
-  pages/             हर फ़ाइल = एक असली पता
-  styles/global.css  डिज़ाइन टोकन + साझा शैली
-  utils/posts.ts     रचनाएँ छाँटने/लाने के फ़ंक्शन
-public/
-  favicon.svg
-```
-
-### शैली कहाँ लिखी जाती है / Where the CSS lives
-
-- **`src/styles/global.css`** — डिज़ाइन टोकन (`--paper`, `--ink`, `--kite`…),
-  base typography, और **रचना के शरीर की शैली** (`.post-body`, `.verse`, `.lyric`)।
-  रचना का HTML Markdown से बनता है, इसलिए उसकी शैली scoped नहीं हो सकती।
-- **बाकी सब** — उसी `.astro` फ़ाइल के `<style>` में (Astro उसे अपने आप scope कर देता है)।
-
----
-
-## पुरानी फ़ाइल से क्या बदला / What changed from `ambar-v9.html`
-
-- हैश-रूटिंग (`#posts`, `#p1`) की जगह **असली पते** — `/posts`, `/posts/<slug>`
-- `POSTS` array + inline `<article>` की जगह **Markdown content collection**
-- base64 में दबी तस्वीरों की जगह **असली फ़ाइलें**, जो बिल्ड पर ऑप्टिमाइज़ होती हैं
-- डिज़ाइन जस का तस — रंग, फ़ॉन्ट, नाप, animation सब वही
+`CLAUDE.md` records what the code cannot tell you — for instance that the
+database is on another continent and every round trip costs ~280ms, which is why
+adding indexes would not help.
