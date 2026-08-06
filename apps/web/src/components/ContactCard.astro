@@ -16,6 +16,16 @@ import { contactRows } from '../data/site';
         ) : (
           <a href={row.href}>{row.text}</a>
         )}
+        {/*
+          जिस पंक्ति के साथ बटन तय है, उसी पर / only on rows that declare one —
+          see contactRows in data/site.ts, where each button's reach and its
+          limits are written down.
+        */}
+        {'action' in row && row.action && (
+          <a class="btn contact-action" href={row.action.href} target="_blank" rel="noopener">
+            {row.action.label}
+          </a>
+        )}
       </div>
     ))
   }
@@ -46,6 +56,36 @@ import { contactRows } from '../data/site';
 
   .contact-row:last-child {
     margin-bottom: 0;
+  }
+
+  /**
+   * बटन handle के नीचे, उससे थोड़ा हटकर / the button sits under the handle.
+   *
+   * बग़ल में रखने पर वह handle का हिस्सा लगता — जबकि दोनों अलग-अलग जगह ले जाते
+   * हैं: एक प्रोफ़ाइल पर, दूसरा सीधे subscribe की डिबिया पर.
+   *
+   * Beside the handle it would read as part of it, when the two go to different
+   * places — the handle to the profile, the button straight to the subscribe
+   * dialog. Underneath, it reads as a separate offer.
+   */
+  .contact-action {
+    margin-top: 0.7rem;
+    /* .btn साइट भर का है; यहाँ इसे card के भीतर बैठना है / .btn is the site-wide
+       pill. Only the size is nudged, so this stays recognisably the same button
+       the reader has already met at the foot of a post. */
+    font-size: 0.82rem;
+    padding: 0.4rem 1.1rem;
+  }
+
+  /* .btn के अपने रंग वापस / .contact-card a paints every link terracotta and
+     underlines it on hover; the pill needs its own colours back. */
+  .contact-card .contact-action {
+    color: var(--ink-soft);
+  }
+
+  .contact-card .contact-action:hover {
+    color: var(--kite);
+    text-decoration: none;
   }
 
   .contact-row .lbl {

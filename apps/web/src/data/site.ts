@@ -62,7 +62,16 @@ export const socials: SocialLink[] = [
   },
 ];
 
-/** संपर्क पन्ने की पंक्तियाँ / rows shown on the contact page. */
+/**
+ * संपर्क पन्ने की पंक्तियाँ / rows shown on the contact page.
+ *
+ * ── साथ लगने वाला बटन / the optional action beside a row ────────────────────
+ * `action` हो तो पंक्ति के नीचे एक बटन आता है। यह वैकल्पिक है — ईमेल वाली पंक्ति
+ * को इसकी ज़रूरत नहीं, पता ख़ुद ही बटन है।
+ *
+ * `action` adds a button under the row. Optional on purpose: the email row does
+ * not need one, since the address is already the thing you click.
+ */
 export const contactRows = [
   { label: 'ईमेल', text: site.email, href: `mailto:${site.email}`, external: false },
   {
@@ -70,11 +79,51 @@ export const contactRows = [
     text: '@ambarkibaatein',
     href: 'https://www.instagram.com/ambarkibaatein',
     external: true,
+    /**
+     * ⚠️ यह बटन ख़ुद फ़ॉलो नहीं करता — कर भी नहीं सकता.
+     *
+     * Instagram किसी दूसरी साइट से फ़ॉलो करने का कोई रास्ता नहीं देता; न कोई API,
+     * न कोई widget. इसलिए यह सिर्फ़ प्रोफ़ाइल खोलता है, जहाँ पाठक Instagram का
+     * अपना Follow दबाता है। लिखावट इसीलिए "फ़ॉलो कीजिए" है — "फ़ॉलो करें" नहीं —
+     * ताकि बटन वह वादा न करे जो वह निभा नहीं सकता।
+     *
+     * This cannot follow on the reader's behalf and no button can: Meta exposes
+     * no API or widget for it, and anything claiming otherwise would need the
+     * reader's password. It opens the profile, where they tap Instagram's own
+     * Follow. The wording is an invitation rather than a claim for that reason.
+     */
+    action: { label: 'फ़ॉलो कीजिए / Follow', href: 'https://www.instagram.com/ambarkibaatein' },
   },
   {
     label: 'YouTube',
     text: '@AmbarkiBaatein',
     href: 'https://www.youtube.com/@AmbarkiBaatein',
     external: true,
+    /**
+     * `?sub_confirmation=1` — YouTube का अपना रास्ता / YouTube's own parameter.
+     *
+     * चैनल खुलते ही subscribe वाली डिबिया सामने आ जाती है; पाठक को चैनल पर बटन
+     * ढूँढना नहीं पड़ता, बस "हाँ" दबाना होता है।
+     *
+     * Opens the channel with the subscribe dialog already showing, so the reader
+     * confirms rather than hunts for the button.
+     *
+     * Google का official subscribe widget यहीं पर लगाया जा सकता था — पन्ना छोड़े
+     * बिना subscribe हो जाता। नहीं लगाया: वह third-party cookies पर टिका है, जो
+     * अब ज़्यादातर browser रोक देते हैं, इसलिए वह चुपचाप नाकाम होता है — पाठक
+     * दबाता है और कुछ नहीं होता, कोई ग़लती भी नहीं दिखती। साथ में Google का
+     * tracking script भी आता, इस पन्ने पर जहाँ अभी एक भी नहीं है.
+     *
+     * Google's official subscribe widget would do this without leaving the page.
+     * It is not used because it depends on third-party cookies, which browsers
+     * now block by default, so it fails silently — the reader clicks and nothing
+     * happens, with no error to explain it. It would also add a Google tracking
+     * script to a page that currently loads none. A reliable extra tap beats an
+     * unreliable saved one.
+     */
+    action: {
+      label: 'सब्सक्राइब कीजिए / Subscribe',
+      href: 'https://www.youtube.com/@AmbarkiBaatein?sub_confirmation=1',
+    },
   },
 ] as const;
