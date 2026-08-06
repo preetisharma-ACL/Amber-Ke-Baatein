@@ -88,10 +88,27 @@ const emptySlots = Math.max(0, 3 - photos.length);
     z-index: 2;
   }
 
+  /**
+   * फ़्रेम चौकोर नहीं, ज़रा खड़ा / slightly taller than square.
+   *
+   * नाप सबका एक ही रहता है — दीवार वैसी ही दिखती है — पर चौकोर फ़्रेम खड़ी तस्वीर
+   * का ऊपर-नीचे से 15% काट देता था, यानी सिर। 4:5 पर वही कटाव 7% रह जाता है और
+   * चेहरा पूरा बचा रहता है।
+   *
+   * Every frame stays the same size, so the wall still reads as a set. But a
+   * square crops 15% off the top and bottom of a 2:3 portrait — which is exactly
+   * where a standing subject's head is. At 4:5 that falls to about 7%, enough to
+   * clear the face on the photographs here.
+   *
+   * इससे ज़्यादा खड़ा करने पर पड़ी तस्वीरें दोनों तरफ़ से ज़्यादा कटने लगती हैं.
+   * Going taller still would start taking noticeably more off the sides of a
+   * landscape photograph, so this is as far as it goes without trading one
+   * problem for the other.
+   */
   .frame {
     position: relative;
     overflow: hidden;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 4 / 5;
     background: #e6ded2;
   }
 
