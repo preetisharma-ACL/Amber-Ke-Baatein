@@ -90,9 +90,9 @@ export const contactRows = [
      * This cannot follow on the reader's behalf and no button can: Meta exposes
      * no API or widget for it, and anything claiming otherwise would need the
      * reader's password. It opens the profile, where they tap Instagram's own
-     * Follow. The wording is an invitation rather than a claim for that reason.
+     * Follow — the same one extra tap either way.
      */
-    action: { label: 'फ़ॉलो कीजिए / Follow', href: 'https://www.instagram.com/ambarkibaatein' },
+    action: { label: 'Follow', href: 'https://www.instagram.com/ambarkibaatein' },
   },
   {
     label: 'YouTube',
@@ -122,7 +122,7 @@ export const contactRows = [
      * unreliable saved one.
      */
     action: {
-      label: 'सब्सक्राइब कीजिए / Subscribe',
+      label: 'Subscribe',
       href: 'https://www.youtube.com/@AmbarkiBaatein?sub_confirmation=1',
     },
   },

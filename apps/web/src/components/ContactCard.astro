@@ -51,7 +51,10 @@ import { contactRows } from '../data/site';
   }
 
   .contact-row {
-    margin-bottom: 1.4rem;
+    /* बटन आने के बाद पंक्तियों को ज़्यादा जगह चाहिए / rows need more room now
+       that one can end in a button — at 1.4rem the button of one row crowded
+       the label of the next and the two read as a single group. */
+    margin-bottom: 2rem;
   }
 
   .contact-row:last-child {
@@ -69,7 +72,22 @@ import { contactRows } from '../data/site';
    * dialog. Underneath, it reads as a separate offer.
    */
   .contact-action {
-    margin-top: 0.7rem;
+    /**
+     * अपनी पंक्ति में, handle के नीचे / on its own line, under the handle.
+     *
+     * `.btn` inline-block है, इसलिए बिना इसके बटन handle के ठीक बग़ल में चिपक
+     * जाता है — दोनों एक ही चीज़ लगते हैं, जबकि वे अलग-अलग जगह ले जाते हैं.
+     *
+     * `.btn` is inline-block, so without this the button sits immediately beside
+     * the handle and the two read as one thing — when the handle goes to the
+     * profile and the button goes straight to the subscribe dialog.
+     * `width: fit-content` with auto margins keeps it centred like the rest of
+     * the card without stretching the pill across it.
+     */
+    display: block;
+    width: fit-content;
+    margin: 0.75rem auto 0;
+
     /* .btn साइट भर का है; यहाँ इसे card के भीतर बैठना है / .btn is the site-wide
        pill. Only the size is nudged, so this stays recognisably the same button
        the reader has already met at the foot of a post. */
