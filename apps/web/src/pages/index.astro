@@ -14,5 +14,29 @@ const posts = await getLatestPosts(3);
   <section class="page">
     <div class="section-label">नई रचनाएँ</div>
     <PostList posts={posts} emptyMessage="अभी कुछ लिखा नहीं गया।" />
+
+    {/*
+      तीन के बाद आगे का रास्ता / a way onward after the three newest.
+      होम पन्ना सिर्फ़ नई तीन दिखाता है; बाक़ी तक पहुँचने के लिए अब तक ऊपर की
+      पट्टी ही थी। पढ़ चुकने के बाद आँख नीचे होती है, ऊपर नहीं।
+
+      The homepage shows only the three newest posts. Until now the only way to
+      the rest was the header nav — but a reader who has just finished the last
+      excerpt is looking at the bottom of the page, not the top. This puts the
+      next step where the reading ends.
+    */}
+    <div class="all-posts">
+      <a class="btn" href="/posts">सारी रचनाएँ →</a>
+    </div>
   </section>
 </BaseLayout>
+
+<style>
+  .all-posts {
+    display: flex;
+    justify-content: center;
+    /* सूची से थोड़ा हटकर, ताकि यह किसी एक रचना का हिस्सा न लगे / set apart from
+       the list, so it does not read as belonging to the last card. */
+    padding: 2.5rem 0 1rem;
+  }
+</style>
