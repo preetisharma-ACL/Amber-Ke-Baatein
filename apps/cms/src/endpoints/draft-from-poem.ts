@@ -30,6 +30,11 @@ const SegmentSchema = z.object({
    * lyric  = किसी और का गीत/शेर, उद्धृत       / someone else's quoted lines
    * center = बीचोंबीच रखी अकेली पंक्ति        / a single centred line
    * paragraph = सादा गद्य                     / plain prose
+   *
+   * ⚠️ verse और lyric का फ़र्क़ यह नहीं कि पंक्तियाँ कैसी दिखती हैं — यह है कि वे
+   * किसकी हैं। इस लेखक की अपनी कविताएँ भी गद्य के बीच अलग रखी होती हैं, इसलिए
+   * "अलग रखी है" से lyric मत समझिए. The prompt spells this out; getting it wrong
+   * is what makes a poem render as a quotation instead of a verse block.
    */
   kind: z.enum(['paragraph', 'verse', 'lyric', 'center']),
   /** newline अपनी जगह रखता है — verse और lyric में यही पंक्तियाँ बाँटता है. */
@@ -56,7 +61,10 @@ const hindiDate = (d: Date) => `${d.getDate()} ${HINDI_MONTHS[d.getMonth()]} ${d
 
 // ── prompt ──────────────────────────────────────────────────────────────────
 
-const systemPrompt = (categories: string[]) => `
+// जाँच के लिए export किया गया — असली prompt पर ही परखा जा सके, नक़ल पर नहीं.
+// Exported so a test can exercise the real prompt rather than a copy of it,
+// which would pass while the shipped one stays wrong.
+export const systemPrompt = (categories: string[]) => `
 आप "अम्बर की बातें" के लिए काम कर रहे हैं — अलोक कुमार सिंह का हिन्दी ब्लॉग, जहाँ
 कविताएँ और संस्मरण छपते हैं।
 
@@ -84,12 +92,28 @@ ${categories.length ? categories.map((c) => `  - ${c}`).join('\n') : '  (none ex
 If none genuinely fits, return "" and a human will choose. Do not invent a name.
 
 **segments** — split the body in order. This is the judgement that matters:
-  - "verse"  — the author's own poetry. Put the whole poem in one segment; keep
-    the line breaks, and separate stanzas with a blank line.
-  - "lyric"  — lines quoted from someone else (a film song, a couplet). Usually
-    short, often set apart in the original.
-  - "center" — a single short line the author clearly means to stand alone.
+  - "verse"  — poetry. Put each poem in one segment; keep the line breaks, and
+    separate stanzas with a blank line.
+  - "lyric"  — lines quoted from SOMEONE ELSE (a film song, another poet's
+    couplet).
+  - "center" — a single short line the author means to stand alone. One line, not
+    a stanza.
   - "paragraph" — prose. One segment per paragraph.
+
+**verse बनाम lyric / verse vs lyric — the distinction is authorship, not looks.**
+This author writes memoir with his own poetry set into it, so several lines of
+verse sitting between two prose paragraphs are almost always HIS. Being short,
+indented, or visually separated tells you nothing — his verses look exactly like
+that.
+
+Use "lyric" only with actual evidence the lines belong to someone else: a named
+film, singer or poet; quotation marks around them; or a phrase introducing them
+as a quotation ("जैसा किसी ने कहा है", "फ़िल्म का वो गाना", "किसी शायर ने लिखा है").
+
+**अनिश्चित हो तो "verse" चुनिए / when in doubt choose "verse".** Misclassifying his
+poem as a quotation strips the styling the poems are meant to carry, and that is
+the more damaging of the two mistakes.
+
 Reproduce the author's words exactly. Do not correct spelling, rewrite phrasing,
 or add lines that are not there.
 `.trim()
