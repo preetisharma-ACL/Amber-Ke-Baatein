@@ -18,7 +18,7 @@ const photos = await getGallery();
 const emptySlots = Math.max(0, 3 - photos.length);
 ---
 
-<div class="gallery wrap-wide">
+<div class="gallery">
   {
     photos.map((photo) => (
       <div class="gal-item">
@@ -73,11 +73,36 @@ const emptySlots = Math.max(0, 3 - photos.length);
    * how the wall should look, not something to be inferred from arithmetic —
    * so it is stated.
    */
+  /**
+   * ── जाली `.wrap` से बाहर निकलती है / the grid steps outside the page wrapper ──
+   *
+   * BaseLayout सब कुछ `.wrap` (40rem) के भीतर रखता है — रचना पढ़ने के लिए यही
+   * सही है, पर तस्वीरों के लिए बहुत सँकरा। पहले यहाँ `wrap-wide` लगा था, जो
+   * 58rem माँगता है; पर वह `.wrap` के *भीतर* था, इसलिए उसका कोई असर ही नहीं
+   * होता था — तीन छपाइयाँ 40rem में दबकर छोटी रह जातीं और दोनों तरफ़ ख़ाली
+   * अँधेरा पड़ा रहता।
+   *
+   * BaseLayout wraps every page in `.wrap`, capped at 40rem — right for reading
+   * a poem, far too narrow for photographs. This used to carry `wrap-wide`,
+   * which asks for 58rem, but it sat *inside* `.wrap` and a child cannot be
+   * wider than its parent, so the class did nothing at all. Hence three cramped
+   * prints with a wide empty margin either side.
+   *
+   * So it re-centres itself against the viewport instead, the same way a post
+   * with media does in PostLayout. 76rem is where it stops: past that, three
+   * prints to a row simply become large rather than better.
+   */
   .gallery {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2.2rem;
     margin: 2rem 0 1rem;
+
+    width: min(76rem, calc(100vw - 4rem));
+    max-width: none;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* छोटे परदे पर दो, फिर एक / two on a tablet, one on a phone — three prints

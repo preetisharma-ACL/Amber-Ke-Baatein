@@ -45,12 +45,6 @@ body {
   padding: 0 1.6rem;
 }
 
-.wrap-wide {
-  max-width: 58rem;
-  margin: 0 auto;
-  padding: 0 1.6rem;
-}
-
 /* Every non-home page starts below the fixed navbar. In the original
    single-page build the .view rule did this; real routes need it too. */
 .page {
