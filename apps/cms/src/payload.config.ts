@@ -22,6 +22,7 @@ import { Comments } from './collections/Comments'
 import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
+import { Videos } from './collections/Videos'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -75,7 +76,7 @@ export default buildConfig({
    * depth. Nothing relies on the old default of 2.
    */
   defaultDepth: 0,
-  collections: [Posts, Categories, Gallery, Audio, Media, Comments, Users],
+  collections: [Posts, Categories, Gallery, Audio, Videos, Media, Comments, Users],
 
   // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
   // reachable at POST /api/draft-from-poem. Staff-only; see the handler.
@@ -141,9 +142,35 @@ export default buildConfig({
      */
     cloudStoragePlugin({
       collections: {
-        gallery: { adapter: cloudinaryAdapter() },
-        audio: { adapter: cloudinaryAdapter() },
-        media: { adapter: cloudinaryAdapter() },
+        /**
+         * ⚠️ `disablePayloadAccessControl` के बिना Cloudinary का पता बनता ही नहीं.
+         *
+         * plugin `generateURL` को सिर्फ़ तभी बुलाता है जब यह `true` हो — वरना वह
+         * Payload का अपना पता (`/api/gallery/file/…`) सहेजता है, जो चलकर
+         * Cloudinary पर भेज देता है। दिखने में सब ठीक लगता है, पर:
+         *
+         *   • हर तस्वीर पहले CMS से होकर जाती है — यानी स्थिर साइट भी CMS के
+         *     चलने पर निर्भर हो जाती है, जो इस पूरे ढाँचे के ख़िलाफ़ है;
+         *   • सहेजा हुआ पता पूरा होता है — `http://localhost:3456/…` — इसलिए
+         *     deploy करते ही हर तस्वीर टूट जाती है।
+         *
+         * The plugin only calls `generateURL` when this is true. Without it the
+         * stored `url` is Payload's own file route, which 302-redirects to
+         * Cloudinary. That *works*, which is what makes it dangerous: every image
+         * request travels through the CMS, so a static site silently gains a
+         * runtime dependency on it — and the stored URL is absolute, so every
+         * image breaks the moment this is deployed anywhere but this laptop.
+         *
+         * With it true the browser goes straight to Cloudinary's CDN, which is
+         * the entire reason for using Cloudinary.
+         *
+         * इन तीनों का सामान वैसे भी सार्वजनिक है / all three hold public assets —
+         * photographs, recitations and cover images that the site shows to
+         * everyone — so there is no access control being given up here.
+         */
+        gallery: { adapter: cloudinaryAdapter(), disablePayloadAccessControl: true },
+        audio: { adapter: cloudinaryAdapter(), disablePayloadAccessControl: true },
+        media: { adapter: cloudinaryAdapter(), disablePayloadAccessControl: true },
       },
     }),
   ],

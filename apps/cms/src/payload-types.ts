@@ -71,6 +71,7 @@ export interface Config {
     categories: Category;
     gallery: Gallery;
     audio: Audio;
+    videos: Video;
     media: Media;
     comments: Comment;
     users: User;
@@ -85,6 +86,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
     audio: AudioSelect<false> | AudioSelect<true>;
+    videos: VideosSelect<false> | VideosSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -235,7 +237,7 @@ export interface Media {
   focalY?: number | null;
 }
 /**
- * रचना पढ़कर रिकॉर्ड की हुई फ़ाइल — mp3 या m4a।
+ * रचना पढ़कर रिकॉर्ड की हुई फ़ाइल — mp3 या m4a। यहाँ जो चढ़ेगा वह गैलरी के "आलोक की आवाज़ें" खाने में भी दिखेगा, और रचना के साथ भी लगाया जा सकता है।
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "audio".
@@ -243,9 +245,13 @@ export interface Media {
 export interface Audio {
   id: number;
   /**
-   * सिर्फ़ पहचानने के लिए — जैसे "कुछ पाया — पाठ"।
+   * गैलरी में यही दिखेगा, और रचना के साथ लगाते समय पहचानने के काम आएगा — जैसे "कुछ पाया — पाठ"।
    */
   title: string;
+  /**
+   * बड़ा नंबर पहले दिखता है। सामान्यतः 0 ही रहने दीजिए।
+   */
+  order: number;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -289,6 +295,29 @@ export interface Gallery {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * गैलरी के "चलचित्र" खाने में दिखने वाले वीडियो। YouTube या Instagram का लिंक चिपकाइए — फ़ाइल चढ़ाने की ज़रूरत नहीं।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "videos".
+ */
+export interface Video {
+  id: number;
+  /**
+   * वीडियो के नीचे दिखेगा — जैसे "एक शाम, एक कविता"।
+   */
+  title: string;
+  /**
+   * YouTube या Instagram reel का लिंक, जैसा है वैसा ही चिपकाइए। tracking वाला हिस्सा साइट ख़ुद हटा देती है।
+   */
+  videoUrl: string;
+  /**
+   * बड़ा नंबर पहले दिखता है। सामान्यतः 0 ही रहने दीजिए।
+   */
+  order: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * नई टिप्पणियाँ "प्रतीक्षा में" रहती हैं। पढ़कर "स्वीकृत" कीजिए, तभी साइट पर दिखेंगी।
@@ -375,6 +404,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'audio';
         value: number | Audio;
+      } | null)
+    | ({
+        relationTo: 'videos';
+        value: number | Video;
       } | null)
     | ({
         relationTo: 'media';
@@ -489,6 +522,7 @@ export interface GallerySelect<T extends boolean = true> {
  */
 export interface AudioSelect<T extends boolean = true> {
   title?: T;
+  order?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -500,6 +534,17 @@ export interface AudioSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "videos_select".
+ */
+export interface VideosSelect<T extends boolean = true> {
+  title?: T;
+  videoUrl?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

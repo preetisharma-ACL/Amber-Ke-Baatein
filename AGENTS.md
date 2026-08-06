@@ -143,19 +143,60 @@ UploadThing only, which is why this one is hand-written.
 - **Gallery is its own collection, separate from Media**, so post cover images
   do not turn up in the public grid.
 
-⚠️ **`url` is written into Postgres once, at upload — never recomputed on read.**
-This is the trap that broke the gallery: `onInit` returns early when the
-Cloudinary keys are missing, and `generateURL` used to assume it had run. A
-server started *before* the keys were added therefore uploaded the file
-successfully (`handleUpload` configures on the way through) while storing
-`http://localhost:3456/api/gallery/file/…` as the URL. The symptom is a broken
-`<img>` in front of a file that is sitting perfectly well in Cloudinary.
+⚠️ **`disablePayloadAccessControl: true` is what makes any of this work.** The
+plugin calls `generateURL` *only* when that flag is set. Without it the stored
+`url` is Payload's own `/api/gallery/file/<name>` route, which 302-redirects to
+Cloudinary — so images load and everything looks fine. That is exactly what
+makes it dangerous:
 
-`generateURL` and `staticHandler` now call `ensureCloudinary()` themselves, so
-this cannot recur. But **re-saving a damaged row does not repair it** — the
-plugin does not regenerate `url` on update. Delete and re-upload the file, or
-rewrite the column directly. And **after changing anything in `.env`, restart
-the CMS**: a running server holds the old environment.
+- every image travels through the CMS, so **the static site silently gains a
+  runtime dependency on it**;
+- the stored URL is absolute (`http://localhost:3456/…`), so **every image
+  breaks the moment the site is deployed anywhere else**.
+
+It is set on all three collections. Don't remove it to "tighten access" — these
+hold public photographs, recitations and cover images, so there is no access
+control being given up.
+
+⚠️ **`url` is written into Postgres once, at upload — never recomputed on read.**
+So a row saved while something was misconfigured stays wrong forever, and
+**re-saving does not repair it** — the plugin does not regenerate `url` on
+update. Delete and re-upload, or rewrite the column directly.
+
+A second, separate trap: `onInit` returns early when the Cloudinary keys are
+missing, and `generateURL` used to assume it had run — so a server started
+*before* the keys were added would upload successfully (`handleUpload`
+configures on the way through) while producing an unusable URL. `generateURL`
+and `staticHandler` now call `ensureCloudinary()` themselves. **After changing
+anything in `.env`, restart the CMS**: a running server holds the old
+environment.
+
+⚠️ **Payload's file route answers `GET` but not `HEAD`** (404). Verifying an
+upload with `curl -I` or `fetch(url, {method:'HEAD'})` reports a missing file
+that is actually there. Use a `GET`.
+
+## The gallery page: three tabs
+
+`/gallery` carries तस्वीरें (default), आलोक की आवाज़ें and चलचित्र.
+
+| tab | source | stored |
+|---|---|---|
+| तस्वीरें | `gallery` collection | Cloudinary |
+| आलोक की आवाज़ें | the **same `audio` collection** posts use | Cloudinary |
+| चलचित्र | `videos` collection | **just a URL** |
+
+- **All three panels are built at build time**; the tabs show and hide. Nothing
+  is fetched on click, and with JavaScript off the reader loses the tabs, not
+  the content.
+- **The recordings tab is not a second collection.** A recitation uploaded for a
+  poem appears here too — uploading it twice would be the obvious alternative
+  and the wrong one.
+- **`videos` holds a link, not a file.** A phone video is routinely 100MB+ and
+  Cloudinary's free tier is ~25GB total; these videos already live on YouTube or
+  Instagram. `fields/video-url.ts` shares one loose validator with `Posts.videoUrl`
+  — the real parsing stays in `utils/embeds.ts`, so the CMS never rejects a link
+  the site can handle.
+- The tab is written to the URL hash, so `/gallery#chalchitra` opens on चलचित्र.
 
 ## Audio and video on a post
 

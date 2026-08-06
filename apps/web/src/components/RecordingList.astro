@@ -1,0 +1,98 @@
+---
+import { getRecordings } from '../utils/gallery';
+
+/**
+ * आलोक की आवाज़ें / the recordings tab.
+ *
+ * हिन्दी कविता सुनने की चीज़ भी है — मात्रा और ठहराव काग़ज़ पर नहीं बचते। ये वही
+ * फ़ाइलें हैं जो रचनाओं के साथ लगती हैं, यहाँ एक जगह इकट्ठी।
+ *
+ * The same recordings that attach to individual poems, gathered in one place.
+ * Nothing is uploaded twice: a recitation added for a post appears here as
+ * well, and one that belongs to no particular poem still has somewhere to live.
+ */
+const recordings = await getRecordings();
+---
+
+{
+  recordings.length === 0 ? (
+    <p class="empty-note">अभी कोई आवाज़ नहीं चढ़ी।</p>
+  ) : (
+    <div class="recordings">
+      {recordings.map((rec) => (
+        <article class="rec">
+          <div class="rec__head">
+            <span class="rec__icon" aria-hidden="true">
+              ♪
+            </span>
+            <h3 class="rec__title">{rec.title}</h3>
+          </div>
+          {/*
+            ब्राउज़र का अपना player / the native player — no JavaScript, works on
+            every phone, and honours the listener's own volume and speed.
+            `preload="none"` ताकि पन्ना खोलते ही सारी फ़ाइलें न उतरने लगें —
+            so opening the tab does not start downloading every recording.
+          */}
+          <audio class="rec__audio" controls preload="none" src={rec.url}>
+            आपका ब्राउज़र आवाज़ नहीं चला सकता।
+          </audio>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  /**
+   * एक के नीचे एक, जाली नहीं / a column, not a grid.
+   * आवाज़ में देखने को कुछ नहीं होता — बग़ल में रखने से सिर्फ़ नाम छोटा पड़ता है.
+   *
+   * There is nothing to look at in a recording, so side-by-side buys nothing
+   * and costs the title its room. A single column keeps the player wide enough
+   * for a thumb to find a position in a five-minute reading.
+   */
+  .recordings {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-width: 34rem;
+    margin: 2.5rem auto 1rem;
+  }
+
+  .rec {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--paper-2);
+    padding: 1.1rem 1.15rem 1.2rem;
+  }
+
+  .rec__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .rec__icon {
+    color: var(--kite);
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .rec__title {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .rec__audio {
+    width: 100%;
+    display: block;
+    /* गहरे पन्ने पर ब्राउज़र का हल्का player भड़कीला लगता है / the native control
+       ships light-themed; this stops it glaring on a near-black page. */
+    filter: invert(0.88) hue-rotate(180deg);
+    border-radius: 6px;
+  }
+</style>

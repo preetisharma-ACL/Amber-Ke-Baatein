@@ -1,8 +1,34 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GalleryGrid from '../components/GalleryGrid.astro';
+import RecordingList from '../components/RecordingList.astro';
+import VideoGrid from '../components/VideoGrid.astro';
 
-/** गैलरी / gallery. */
+/**
+ * गैलरी / gallery — तीन खाने: तस्वीरें, आवाज़ें, चलचित्र.
+ *
+ * ── तीनों एक साथ बनते हैं, दिखता एक है / all three render, one is shown ──────
+ * साइट स्थिर है, इसलिए तीनों खाने build के समय ही बन जाते हैं और खाना बदलने पर
+ * कुछ नया माँगा नहीं जाता — बस दिखाना-छिपाना होता है। इसका मतलब यह भी है कि
+ * JavaScript बंद हो तब भी तीनों की सामग्री पन्ने में मौजूद रहती है।
+ *
+ * The site is static, so all three panels are built at build time and switching
+ * a tab shows and hides rather than fetching. That also means the content of
+ * all three exists in the page with JavaScript disabled — the reader loses the
+ * tabs, not the recordings.
+ *
+ * तस्वीरें डिफ़ॉल्ट रूप से खुली रहती हैं / तस्वीरें is open by default: it is the
+ * oldest part of this page and the one with the most in it.
+ */
+
+const TABS = [
+  { id: 'tasveerein', label: 'तस्वीरें' },
+  { id: 'aawaazein', label: 'आलोक की आवाज़ें' },
+  { id: 'chalchitra', label: 'चलचित्र' },
+] as const;
+
+/** पहला खाना खुला / the first tab is the open one. */
+const DEFAULT_TAB = TABS[0].id;
 ---
 
 <BaseLayout title="गैलरी" description="अम्बर की बातें — कुछ तस्वीरें, कुछ यादें।">
@@ -12,16 +38,172 @@ import GalleryGrid from '../components/GalleryGrid.astro';
       <div class="sub">कुछ तस्वीरें, कुछ यादें</div>
     </div>
 
-    <GalleryGrid />
+    {/*
+      असली tablist / a real tablist, not three styled buttons.
+      role, aria-selected और तीरों से चलना — screen reader को यह बताना ज़रूरी है
+      कि ये तीन अलग कड़ियाँ नहीं, एक ही चीज़ के तीन खाने हैं.
+
+      The roles are not decoration: without them a screen reader announces three
+      unrelated buttons rather than one control with three positions, and the
+      listener has no way to know that choosing one hides the others.
+    */}
+    <div class="tabs" role="tablist" aria-label="गैलरी के खाने">
+      {
+        TABS.map((tab) => (
+          <button
+            class:list={['tab', { on: tab.id === DEFAULT_TAB }]}
+            type="button"
+            role="tab"
+            id={`tab-${tab.id}`}
+            data-tab={tab.id}
+            aria-controls={`panel-${tab.id}`}
+            aria-selected={tab.id === DEFAULT_TAB ? 'true' : 'false'}
+            tabindex={tab.id === DEFAULT_TAB ? 0 : -1}
+          >
+            {tab.label}
+          </button>
+        ))
+      }
+    </div>
+
+    {
+      TABS.map((tab) => (
+        <div
+          class="panel"
+          role="tabpanel"
+          id={`panel-${tab.id}`}
+          data-panel={tab.id}
+          aria-labelledby={`tab-${tab.id}`}
+          hidden={tab.id !== DEFAULT_TAB}
+        >
+          {tab.id === 'tasveerein' && <GalleryGrid />}
+          {tab.id === 'aawaazein' && <RecordingList />}
+          {tab.id === 'chalchitra' && <VideoGrid />}
+        </div>
+      ))
+    }
   </section>
 </BaseLayout>
 
 <style>
-  /* जाली पन्ने से चौड़ी है और उसके नीचे अब कुछ नहीं — इसलिए नीचे थोड़ी जगह यहाँ
-     चाहिए, वरना आख़िरी कतार footer से चिपक जाती है / the grid is wider than the
-     page and nothing follows it now, so the breathing room it used to get from
-     the closing line has to come from here instead. */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    justify-content: center;
+    margin: 2rem 0 0.5rem;
+  }
+
+  /* श्रेणी वाले बटनों जैसी ही शक्ल / deliberately the same shape as the category
+     chips on /posts — the site already taught the reader what these look like. */
+  .tab {
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 2rem;
+    padding: 0.45rem 1.15rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    transition: all 0.3s ease;
+  }
+
+  .tab:hover {
+    border-color: var(--kite);
+    color: var(--kite);
+  }
+
+  .tab.on {
+    border-color: var(--kite);
+    color: var(--kite);
+    background: rgba(224, 101, 76, 0.1);
+  }
+
+  /* कीबोर्ड से चलने वाले को दिखे कि वह कहाँ है / keep the focus ring visible;
+     these are reachable with the arrow keys and a lost focus ring strands you. */
+  .tab:focus-visible {
+    outline: 2px solid var(--kite);
+    outline-offset: 2px;
+  }
+
+  .panel {
+    animation: fadeUp 0.45s ease both;
+  }
+
+  /* जाली पन्ने से चौड़ी है और उसके नीचे कुछ नहीं — नीचे जगह यहाँ से आती है /
+     the grids are wider than the text column and nothing follows them, so the
+     breathing room above the footer comes from here. */
   .page {
     padding-bottom: 2.5rem;
   }
 </style>
+
+<script>
+  /**
+   * खाना बदलिए / switch tabs.
+   *
+   * कुछ माँगा नहीं जाता — तीनों खाने पन्ने में पहले से हैं. Nothing is fetched;
+   * all three panels are already in the page. This only toggles `hidden`.
+   *
+   * पता (URL) भी बदलता है — #chalchitra जैसा. The chosen tab is written to the
+   * hash so a particular tab can be linked to and survives a reload, and so the
+   * back button steps through tabs the way a reader expects.
+   */
+  const tabBox = document.querySelector<HTMLElement>('.tabs');
+
+  if (tabBox) {
+    const tabs = [...tabBox.querySelectorAll<HTMLButtonElement>('.tab')];
+    const panels = [...document.querySelectorAll<HTMLElement>('[data-panel]')];
+
+    function show(id: string, moveFocus = false) {
+      for (const tab of tabs) {
+        const on = tab.dataset.tab === id;
+        tab.classList.toggle('on', on);
+        tab.setAttribute('aria-selected', String(on));
+        // सिर्फ़ खुला खाना Tab से पहुँचे / only the selected tab is in the tab
+        // order; the arrow keys move between them. This is what a tablist is
+        // meant to do, and it stops three stops appearing in a keyboard walk.
+        tab.tabIndex = on ? 0 : -1;
+        if (on && moveFocus) tab.focus();
+      }
+      for (const panel of panels) panel.hidden = panel.dataset.panel !== id;
+    }
+
+    for (const tab of tabs) {
+      tab.addEventListener('click', () => {
+        const id = tab.dataset.tab;
+        if (!id) return;
+        show(id);
+        // इतिहास में नया पन्ना मत जोड़िए — खाना बदलना "पीछे" वाला क़दम नहीं है
+        // जब तक पाठक ख़ुद न चुने. replaceState rather than a hash assignment so
+        // that idly clicking through the tabs does not fill the back button.
+        history.replaceState(null, '', `#${id}`);
+      });
+    }
+
+    /** तीरों से चलना / arrow-key navigation, as a tablist is expected to have. */
+    tabBox.addEventListener('keydown', (event) => {
+      const current = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+      if (current === -1) return;
+
+      let next = current;
+      if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = tabs.length - 1;
+      else return;
+
+      event.preventDefault();
+      const id = tabs[next]?.dataset.tab;
+      if (id) {
+        show(id, true);
+        history.replaceState(null, '', `#${id}`);
+      }
+    });
+
+    // पते में जो खाना लिखा हो वही खोलिए / open the tab named in the URL, if it
+    // names one — a link to #chalchitra should land on चलचित्र, not on तस्वीरें.
+    const fromHash = location.hash.slice(1);
+    if (fromHash && tabs.some((t) => t.dataset.tab === fromHash)) show(fromHash);
+  }
+</script>

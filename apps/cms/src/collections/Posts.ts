@@ -3,6 +3,7 @@ import type { Access, CollectionConfig } from 'payload'
 import { isAuthenticated } from '../access'
 import { getLikes, likePost } from '../endpoints/like-post'
 import { slugField } from '../fields/slug'
+import { validateVideoUrl } from '../fields/video-url'
 import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate-site'
 
 /**
@@ -145,14 +146,9 @@ export const Posts: CollectionConfig = {
         description:
           'YouTube या Instagram reel का लिंक चिपकाइए — जैसा है वैसा ही। रचना के बग़ल में वीडियो दिखेगा।',
       },
-      validate: (value: string | null | undefined) => {
-        if (!value) return true // वैकल्पिक है / optional
-        const ok =
-          /(?:youtube\.com|youtu\.be)/i.test(value) || /instagram\.com/i.test(value)
-        return ok
-          ? true
-          : 'सिर्फ़ YouTube या Instagram का लिंक चलेगा / only a YouTube or Instagram link works here.'
-      },
+      // चलचित्र वाला collection भी यही जाँच लगाता है / the चलचित्र collection uses
+      // the same check — see fields/video-url.ts for why it is shared.
+      validate: validateVideoUrl,
     },
     {
       /**

@@ -1,0 +1,143 @@
+---
+import { parseVideoUrl } from '../utils/embeds';
+import { getVideos } from '../utils/gallery';
+
+/**
+ * चलचित्र / the videos tab.
+ *
+ * CMS में सिर्फ़ लिंक रखा जाता है, फ़ाइल नहीं — कारण collections/Videos.ts में
+ * लिखा है। किस मंच का लिंक है, यह यहाँ पहचाना जाता है।
+ *
+ * The CMS stores a link rather than a file (see collections/Videos.ts for why).
+ * Which platform it belongs to is worked out here, from the URL itself.
+ *
+ * ── जो पहचाना न जाए वह दिखता ही नहीं / an unrecognised link is dropped ───────
+ * `parseVideoUrl` गड़बड़ लिंक पर `null` देता है। ऐसे लिंक को छाँट देना ज़रूरी है,
+ * वरना जाली में एक काला ख़ाली डिब्बा रह जाता — जो टूटा हुआ लगता है।
+ *
+ * `parseVideoUrl` returns null for anything it cannot embed. Filtering those
+ * out before rendering matters: an unparsed link would otherwise leave a black
+ * empty box in the grid, which reads as broken rather than as absent.
+ */
+const videos = (await getVideos())
+  .map((video) => ({ ...video, embed: parseVideoUrl(video.videoUrl) }))
+  .filter((video) => video.embed !== null);
+---
+
+{
+  videos.length === 0 ? (
+    <p class="empty-note">अभी कोई चलचित्र नहीं जुड़ा।</p>
+  ) : (
+    <div class="videos">
+      {videos.map((video) => (
+        <article class="vid">
+          {/*
+            हर मंच का अपना अनुपात / each platform keeps its own shape: a reel is
+            shot vertical (9:16), a YouTube video landscape (16:9). Forcing one
+            ratio on both letterboxes the other into a strip.
+          */}
+          <div class:list={['vid__frame', `is-${video.embed!.provider}`]}>
+            <iframe
+              src={video.embed!.embedUrl}
+              title={video.title}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              referrerpolicy="strict-origin-when-cross-origin"
+            />
+          </div>
+          <h3 class="vid__title">{video.title}</h3>
+          <a
+            class="vid__link"
+            href={video.embed!.watchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {video.embed!.label} पर खोलिए ↗
+          </a>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  /**
+   * एक कतार में दो / two to a row, not three.
+   *
+   * तस्वीरों जितने छोटे वीडियो में कुछ दिखता नहीं — और reel तो खड़ा होता है,
+   * तीन के हिसाब से रखने पर वह बहुत पतला रह जाता।
+   *
+   * A video needs more width than a photograph to be worth playing, and a reel
+   * is vertical — at the three-across width of the photo grid it would come out
+   * as a thin strip. Two keeps both shapes watchable.
+   *
+   * जाली पन्ने से बाहर निकलती है, जैसे तस्वीरों वाली / it breaks out of the
+   * 40rem page wrapper the same way the photo grid does, for the same reason.
+   */
+  .videos {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.4rem;
+    margin: 2.5rem 0 1rem;
+
+    width: min(52rem, calc(100vw - 3rem));
+    max-width: none;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  @media (max-width: 42rem) {
+    .videos {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+
+  .vid__frame {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #000;
+    border: 1px solid var(--rule);
+  }
+
+  .vid__frame.is-youtube {
+    aspect-ratio: 16 / 9;
+  }
+
+  .vid__frame.is-instagram {
+    aspect-ratio: 9 / 16;
+  }
+
+  .vid__frame :global(iframe) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .vid__title {
+    margin: 0.9rem 0 0.25rem;
+    font-size: 1.02rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .vid__link {
+    font-size: 0.84rem;
+    color: var(--kite);
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .vid__link:hover {
+    opacity: 0.75;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

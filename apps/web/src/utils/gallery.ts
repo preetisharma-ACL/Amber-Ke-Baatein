@@ -32,6 +32,22 @@ interface CmsGalleryDoc {
   order?: number;
 }
 
+/** आलोक की आवाज़ें / a recording, as the gallery page shows it. */
+export interface GalleryRecording {
+  id: number;
+  title: string;
+  /** Cloudinary का पता / the audio file's URL. */
+  url: string;
+}
+
+/** चलचित्र / a video. फ़ाइल नहीं, सिर्फ़ लिंक — see the Videos collection. */
+export interface GalleryVideo {
+  id: number;
+  title: string;
+  /** जैसा चिपकाया गया वैसा ही — पहचान साइट पर होती है / parsed by utils/embeds. */
+  videoUrl: string;
+}
+
 /**
  * Cloudinary से मनचाहा आकार / ask Cloudinary for a specific rendition.
  *
@@ -60,15 +76,27 @@ export function cloudinaryVariant(url: string, transform: string): string {
  * Higher `order` first, matching how posts sort, so there is one rule to
  * remember rather than two.
  */
-export async function getGallery(): Promise<GalleryPhoto[]> {
-  const url = `${CMS_URL}/api/gallery?depth=0&limit=200&sort=-order`;
+/**
+ * एक collection माँगिए / fetch one collection, in the author's order.
+ *
+ * तीनों खाने — तस्वीरें, आवाज़ें, चलचित्र — एक ही तरह से माँगे जाते हैं, इसलिए
+ * माँगने और ग़लती पकड़ने का काम एक ही जगह रहता है। तीन जगह लिखने का मतलब होता कि
+ * CMS बंद होने पर एक खाना साफ़-साफ़ रुकता और दूसरा चुपचाप ख़ाली दिखता।
+ *
+ * All three tabs are fetched identically, so the request and its error handling
+ * live in one place. Written out three times, a stopped CMS would fail loudly
+ * for one tab and silently render an empty one for another — and an empty tab
+ * looks like "nothing uploaded yet", not like a broken build.
+ */
+async function fetchCollection<T>(slug: string, label: string): Promise<T[]> {
+  const url = `${CMS_URL}/api/${slug}?depth=0&limit=200&sort=-order`;
 
   let response: Response;
   try {
     response = await fetch(url);
   } catch (cause) {
     throw new Error(
-      `गैलरी नहीं मिली / could not reach the CMS at ${CMS_URL}.\n` +
+      `${label} नहीं मिलीं / could not reach the CMS at ${CMS_URL}.\n` +
         `Start it with "npm run dev:cms" (it must be running to build the site).`,
       { cause }
     );
@@ -78,9 +106,13 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
     throw new Error(`CMS returned HTTP ${response.status} for ${url}`);
   }
 
-  const body = (await response.json()) as { docs: CmsGalleryDoc[] };
+  return ((await response.json()) as { docs: T[] }).docs;
+}
 
-  return body.docs
+export async function getGallery(): Promise<GalleryPhoto[]> {
+  const docs = await fetchCollection<CmsGalleryDoc>('gallery', 'गैलरी');
+
+  return docs
     // बिना फ़ाइल वाली पंक्ति छोड़ दीजिए / skip a row whose upload failed, rather
     // than rendering a broken frame on a page that is entirely pictures.
     .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
@@ -92,4 +124,51 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
       width: doc.width,
       height: doc.height,
     }));
+}
+
+/**
+ * आलोक की आवाज़ें / every recording, newest-or-highest first.
+ *
+ * ये वही फ़ाइलें हैं जो रचना के साथ भी लगती हैं — अलग collection नहीं। एक ही
+ * पाठ को दो जगह चढ़ाने से बचाने के लिए: जो रचना के साथ लगी है वह यहाँ भी सुनी जा
+ * सकती है, और जो किसी रचना से नहीं जुड़ी वह भी।
+ *
+ * These are the same files that attach to a post — not a second collection.
+ * That is deliberate: a recording the author has already uploaded for a poem
+ * should not have to be uploaded again to appear here, and a recording that
+ * belongs to no particular poem still has somewhere to live.
+ */
+export async function getRecordings(): Promise<GalleryRecording[]> {
+  const docs = await fetchCollection<{ id: number; title: string; url?: string }>(
+    'audio',
+    'आवाज़ें'
+  );
+
+  return docs
+    // बिना फ़ाइल वाली पंक्ति छोड़ दीजिए / a row whose upload failed has nothing
+    // to play, and an <audio> with no source is a silent dead control.
+    .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
+    .map((doc) => ({ id: doc.id, title: doc.title, url: doc.url! }));
+}
+
+/**
+ * चलचित्र / every video.
+ *
+ * यहाँ सिर्फ़ लिंक आता है — किस मंच का है यह `utils/embeds.ts` तय करता है, ठीक
+ * वैसे ही जैसे रचना के साथ लगे वीडियो के लिए।
+ *
+ * Only the link comes through; which platform it belongs to is worked out by
+ * `utils/embeds.ts`, exactly as for a video attached to a post. A link the
+ * parser does not recognise is dropped by the page rather than rendered as an
+ * empty frame.
+ */
+export async function getVideos(): Promise<GalleryVideo[]> {
+  const docs = await fetchCollection<{ id: number; title: string; videoUrl?: string }>(
+    'videos',
+    'चलचित्र'
+  );
+
+  return docs
+    .filter((doc) => typeof doc.videoUrl === 'string' && doc.videoUrl.length > 0)
+    .map((doc) => ({ id: doc.id, title: doc.title, videoUrl: doc.videoUrl! }));
 }
