@@ -89,16 +89,25 @@ const emptySlots = Math.max(0, 3 - photos.length);
    * prints with a wide empty margin either side.
    *
    * So it re-centres itself against the viewport instead, the same way a post
-   * with media does in PostLayout. 76rem is where it stops: past that, three
-   * prints to a row simply become large rather than better.
+   * with media does in PostLayout.
+   *
+   * ── 58rem पर क्यों रुकता है / why it stops at 58rem ──────────────────────────
+   * इससे चौड़ा करके देखा — हर छपाई लगभग 380px की हो गई और तस्वीरें पन्ने पर हावी
+   * होने लगीं। 58rem पर हर छपाई ~286px की रहती है: हाथ में पकड़ी फ़ोटो जितनी,
+   * जो इस दीवार के लिए ठीक है।
+   *
+   * Tried wider. At 76rem each print came out near 380px and the photographs
+   * started dominating the page rather than sitting on it. 58rem puts each print
+   * at about 286px — roughly the size of a photograph held in the hand, which is
+   * what this wall is imitating.
    */
   .gallery {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2.2rem;
-    margin: 2rem 0 1rem;
+    margin: 2.75rem 0 1.5rem;
 
-    width: min(76rem, calc(100vw - 4rem));
+    width: min(58rem, calc(100vw - 3rem));
     max-width: none;
     position: relative;
     left: 50%;

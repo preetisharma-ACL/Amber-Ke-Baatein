@@ -24,6 +24,11 @@ import GalleryGrid from '../components/GalleryGrid.astro';
     color: var(--ink-faint);
     font-size: 0.9rem;
     font-style: italic;
-    margin-top: 1rem;
+    /* जाली अब पन्ने से चौड़ी है, इसलिए इस पंक्ति को उससे साफ़ हटकर बैठना चाहिए —
+       वरना यह आख़िरी कतार का हिस्सा लगती है / the grid is now wider than the
+       page, so this line needs to sit clear of it rather than reading as part
+       of the last row of prints. */
+    margin-top: 2.5rem;
+    padding-bottom: 1rem;
   }
 </style>
