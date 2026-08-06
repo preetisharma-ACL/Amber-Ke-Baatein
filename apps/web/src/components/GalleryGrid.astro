@@ -17,47 +17,13 @@ const photos = await getGallery();
 /** कम से कम तीन ख़ाने / pad to three so the grid never looks abandoned. */
 const emptySlots = Math.max(0, 3 - photos.length);
 
-/**
- * फ़्रेम तस्वीर के नाप का बने, तस्वीर फ़्रेम के नाप की नहीं.
- *
- * पहले हर फ़्रेम चौकोर था और तस्वीर उसमें काट कर बैठाई जाती थी — खड़ी तस्वीर का
- * सिर ऊपर से कट जाता था। अब फ़्रेम ख़ुद तस्वीर के अनुपात का बनता है, इसलिए कुछ
- * काटना ही नहीं पड़ता।
- *
- * The frame used to be a fixed square with `object-fit: cover`, which crops
- * whatever does not fit — on a portrait photograph that means the top of
- * someone's head. The frame now takes the photograph's own proportions, so
- * there is nothing to crop in the first place.
- *
- * ── हद क्यों लगाई / why it is bounded ────────────────────────────────────────
- * फ़ोन की पूरी लंबी तस्वीर बिना हद के इतनी ऊँची छपती कि बाक़ी तस्वीरें उसके आगे
- * छोटी लगतीं। हद के बाहर वाली तस्वीर कटती नहीं — उसके ऊपर-नीचे थोड़ा काग़ज़ दिखता
- * है, जैसे असली फ़ोटो mount board पर चिपकी हो।
- *
- * An unbounded ratio lets one full-height phone photo print three times taller
- * than everything beside it. Past the bounds the image is still never cut:
- * `object-fit: contain` leaves a little of the print's own paper above and
- * below, which reads as a mounted photograph rather than as a mistake.
- *
- * 0.6–1.5 covers the ordinary camera shapes exactly (2:3 portrait through 3:2
- * landscape), so in practice most photographs sit edge to edge.
- */
-const MIN_RATIO = 0.6;
-const MAX_RATIO = 1.5;
-
-const frameRatio = (photo: { width?: number; height?: number }): number => {
-  // नाप न मालूम हो तो चौकोर / square when the CMS has no dimensions — with
-  // `contain` that still shows the whole photograph, just with more paper.
-  if (!photo.width || !photo.height) return 1;
-  return Math.min(MAX_RATIO, Math.max(MIN_RATIO, photo.width / photo.height));
-};
 ---
 
 <div class="gallery wrap-wide">
   {
     photos.map((photo) => (
       <div class="gal-item">
-        <div class="frame" style={`--ratio: ${frameRatio(photo)}`}>
+        <div class="frame">
           {/*
             आकार Cloudinary से माँगा जाता है, बनाया नहीं जाता.
             The size is requested from Cloudinary rather than stored: 840px wide
@@ -99,16 +65,6 @@ const frameRatio = (photo: { width?: number; height?: number }): number => {
     grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
     gap: 2.2rem;
     margin: 2rem 0 1rem;
-    /**
-     * हर छपाई अपनी ऊँचाई की / let every print keep its own height.
-     * वरना grid एक ही कतार की सब चीज़ें सबसे ऊँची वाली जितनी खींच देता है, और
-     * चौड़ी तस्वीर के नीचे बेवजह ख़ाली काग़ज़ रह जाता है.
-     *
-     * Grid stretches every item in a row to the tallest one by default. Now that
-     * cards differ in height, that would leave a band of empty card below a
-     * landscape photo — the paper would look mis-cut.
-     */
-    align-items: start;
   }
 
   .gal-item {
@@ -133,12 +89,28 @@ const frameRatio = (photo: { width?: number; height?: number }): number => {
     z-index: 2;
   }
 
+  /**
+   * हर फ़्रेम एक ही नाप का / every frame the same size.
+   *
+   * एक बार हर फ़्रेम को उसकी तस्वीर के नाप का बनाकर देखा था — कटना तो बंद हुआ,
+   * पर दीवार बेतरतीब लगने लगी: एक छपाई दूसरी से दुगुनी ऊँची। अब नाप सबका एक है
+   * और तस्वीर उसके भीतर पूरी बैठती है।
+   *
+   * An earlier attempt sized each frame to its own photograph. That did stop the
+   * cropping, but it made the wall look untidy — one print twice the height of
+   * the one beside it. A gallery of prints reads as a set; the set matters more
+   * than each photograph filling its paper edge to edge.
+   *
+   * चौकोर इसलिए कि खड़ी और पड़ी, दोनों तरह की तस्वीरों के साथ एक जैसा बर्ताव हो.
+   * Square, so a portrait and a landscape are treated alike: each gives up a
+   * little width or a little height, neither is favoured.
+   */
   .frame {
     position: relative;
     overflow: hidden;
-    /* हर तस्वीर का अपना अनुपात / each photograph sets its own, see frameRatio.
-       चौकोर सिर्फ़ तब जब नाप मालूम न हो — और ख़ाली फ़्रेम के लिए. */
-    aspect-ratio: var(--ratio, 1);
+    aspect-ratio: 1 / 1;
+    /* तस्वीर के इर्द-गिर्द दिखने वाला काग़ज़ / the mount the photo sits on —
+       card के रंग से ज़रा गहरा, ताकि यह जान-बूझकर लगे, कमी नहीं. */
     background: #e6ded2;
   }
 
@@ -147,15 +119,16 @@ const frameRatio = (photo: { width?: number; height?: number }): number => {
     height: 100%;
     /**
      * कुछ भी काटिए मत / never crop.
-     * `cover` भर तो देता है, पर जो बाहर पड़े उसे काट देता है — खड़ी तस्वीर का
-     * सिर इसी तरह ग़ायब हुआ था। फ़्रेम अब वैसे भी तस्वीर के नाप का है, इसलिए
-     * ज़्यादातर बार दोनों में फ़र्क़ ही नहीं पड़ता; फ़र्क़ सिर्फ़ हद से बाहर की
-     * तस्वीर पर पड़ता है, और वहाँ यही सही है।
      *
-     * `cover` fills the box by cutting off whatever overflows, which is what
-     * removed the top of someone's head. Since the frame now matches the photo,
-     * this changes nothing for an ordinary picture — it only matters for one
-     * outside the ratio bounds, and there showing all of it is the point.
+     * `cover` फ़्रेम को भर देता है, पर जो बाहर पड़े उसे काटकर — खड़ी तस्वीर का
+     * सिर इसी तरह ग़ायब हुआ था। `contain` पूरी तस्वीर दिखाता है और बची जगह में
+     * काग़ज़ छोड़ देता है — जैसे असली फ़ोटो mount board पर चिपकी हो।
+     *
+     * This is what makes one frame size safe for every shape. `cover` fills the
+     * box by cutting off whatever overflows — that is what removed the top of
+     * someone's head. `contain` shows the whole photograph and leaves paper in
+     * the remaining space, so a tall photo gives up a little width and a wide
+     * one a little height, but neither loses any of the picture.
      */
     object-fit: contain;
     display: block;
