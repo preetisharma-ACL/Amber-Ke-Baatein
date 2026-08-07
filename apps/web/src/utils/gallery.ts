@@ -30,6 +30,23 @@ interface CmsGalleryDoc {
   width?: number;
   height?: number;
   order?: number;
+  createdAt?: string;
+}
+
+/**
+ * `media` की पंक्ति / a row from the Media collection.
+ * `gallery` से दो फ़र्क़: कैप्शन ज़रूरी नहीं, और क्रम का खाना है ही नहीं।
+ * Differs from `gallery` in exactly two ways: caption is optional, and there is
+ * no `order` field at all — see getGallery() for how both are handled.
+ */
+interface CmsMediaDoc {
+  id: number;
+  alt: string;
+  caption?: string | null;
+  url?: string;
+  width?: number;
+  height?: number;
+  createdAt?: string;
 }
 
 /** आलोक की आवाज़ें / a recording, as the gallery page shows it. */
@@ -88,8 +105,8 @@ export function cloudinaryVariant(url: string, transform: string): string {
  * for one tab and silently render an empty one for another — and an empty tab
  * looks like "nothing uploaded yet", not like a broken build.
  */
-async function fetchCollection<T>(slug: string, label: string): Promise<T[]> {
-  const url = `${CMS_URL}/api/${slug}?depth=0&limit=200&sort=-order`;
+async function fetchCollection<T>(slug: string, label: string, sort = '-order'): Promise<T[]> {
+  const url = `${CMS_URL}/api/${slug}?depth=0&limit=200&sort=${sort}`;
 
   let response: Response;
   try {
@@ -109,10 +126,45 @@ async function fetchCollection<T>(slug: string, label: string): Promise<T[]> {
   return ((await response.json()) as { docs: T[] }).docs;
 }
 
+/**
+ * जाली में दोनों जगह की तस्वीरें / the grid draws from both upload collections.
+ *
+ * ── पहले सिर्फ़ `gallery` थी / this used to read `gallery` alone ──────────────
+ * `media` अलग रखी गई थी ताकि रचनाओं की मुख्य तस्वीरें सार्वजनिक जाली में न आएँ।
+ * पर व्यवहार में दोनों नाम — "तस्वीरें / Media" और "गैलरी / Gallery" — एक ही
+ * जैसे लगते हैं, और जो तस्वीरें `media` में चढ़ गईं वे कहीं दिखीं ही नहीं। चढ़ाकर
+ * कुछ न दिखना, ग़लत जगह दिख जाने से बुरा है।
+ *
+ * `media` was kept out so post cover images would not appear here. In practice
+ * both names read as "where pictures go", and anything uploaded to `media`
+ * simply vanished — which is worse than appearing somewhere unintended, because
+ * there is no feedback at all.
+ *
+ * ⚠️ नतीजा साफ़ रखिए / know what this now includes: रचनाओं की मुख्य तस्वीरें और
+ * होम पन्ने की hero/portrait तस्वीरें भी `media` में हैं, इसलिए वे भी यहाँ आती
+ * हैं। जो नहीं दिखानी, उसे `/admin` → तस्वीरें से हटा दीजिए।
+ *
+ * Post covers and the homepage hero/portrait live in `media`, so they appear
+ * here too. Anything that should not be public has to be deleted from `media`
+ * — there is no per-image "show in gallery" switch. Add a checkbox field to the
+ * Media collection if that control is ever wanted.
+ */
 export async function getGallery(): Promise<GalleryPhoto[]> {
-  const docs = await fetchCollection<CmsGalleryDoc>('gallery', 'गैलरी');
+  /**
+   * दोनों एक साथ माँगिए / ask for both at once.
+   * `media` में `order` नाम का खाना है ही नहीं, इसलिए उसे `-order` से छाँटना
+   * नहीं कहा जा सकता — वह नई-पहले (`-createdAt`) से आती है।
+   * `media` has no `order` field, so it cannot be sorted by one; it comes back
+   * newest-first instead. Requested in parallel because they are independent.
+   */
+  const [galleryDocs, mediaDocs] = await Promise.all([
+    fetchCollection<CmsGalleryDoc>('gallery', 'गैलरी'),
+    fetchCollection<CmsMediaDoc>('media', 'तस्वीरें', '-createdAt'),
+  ]);
 
-  return docs
+  type Sortable = GalleryPhoto & { order: number; createdAt: string };
+
+  const fromGallery: Sortable[] = galleryDocs
     // बिना फ़ाइल वाली पंक्ति छोड़ दीजिए / skip a row whose upload failed, rather
     // than rendering a broken frame on a page that is entirely pictures.
     .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
@@ -123,7 +175,43 @@ export async function getGallery(): Promise<GalleryPhoto[]> {
       url: doc.url!,
       width: doc.width,
       height: doc.height,
+      order: doc.order ?? 0,
+      createdAt: doc.createdAt ?? '',
     }));
+
+  const fromMedia: Sortable[] = mediaDocs
+    .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
+    .map((doc) => ({
+      id: doc.id,
+      /**
+       * `media` में कैप्शन ज़रूरी नहीं है, पर पोलरॉइड के नीचे की पंक्ति ख़ाली नहीं
+       * रह सकती — वह lightbox का नाम भी है और screen-reader का भी। इसलिए न हो तो
+       * alt काम आता है, जो `media` में ज़रूरी है।
+       *
+       * Caption is optional on `media` but the line under the print is not
+       * decorative: it is also the button's accessible name and the lightbox
+       * title. `alt` is required on `media`, so it is always a usable stand-in.
+       */
+      caption: doc.caption?.trim() || doc.alt,
+      alt: doc.alt,
+      url: doc.url!,
+      width: doc.width,
+      height: doc.height,
+      // `media` में क्रम का खाना नहीं / no manual ordering exists on media.
+      order: 0,
+      createdAt: doc.createdAt ?? '',
+    }));
+
+  /**
+   * एक ही नियम, दोनों के लिए / one rule across both.
+   * हाथ से लगाया क्रम पहले (गैलरी वाली तस्वीरें ही वह रख सकती हैं), फिर नई पहले।
+   * Manual `order` wins — only gallery rows can carry one, so a curated
+   * photograph still outranks a recent upload — then newest first, matching how
+   * posts sort. `id` last so the order never wobbles between builds on a tie.
+   */
+  return [...fromGallery, ...fromMedia]
+    .sort((a, b) => b.order - a.order || b.createdAt.localeCompare(a.createdAt) || a.id - b.id)
+    .map(({ order: _order, createdAt: _createdAt, ...photo }) => photo);
 }
 
 /**
