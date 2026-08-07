@@ -323,7 +323,12 @@ const emptySlots = Math.max(0, 3 - photos.length);
     border: 0;
     background: transparent;
     overflow: visible;
-    color: var(--paper);
+    /* ⚠️ यहाँ पहले `var(--paper)` था — वह पन्ने का *पीछे का* रंग है, लिखावट का
+       नहीं. गहरे पर्दे पर वह 1.07:1 पड़ता था, यानी बटन दिखते ही नहीं थे.
+       ⚠️ This was `var(--paper)`, the page's *background* colour, handed down
+       as a text colour. Against the backdrop it measured 1.07:1 — the close and
+       arrow glyphs were invisible, not merely dim. `--ink` gives 15.56:1. */
+    color: var(--ink);
   }
 
   /* पीछे का पन्ना गहरा हो जाए / the page behind goes dark and slightly soft,
@@ -393,9 +398,13 @@ const emptySlots = Math.max(0, 3 - photos.length);
 
   .lightbox__close,
   .lightbox__nav {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: var(--paper);
+    /* तस्वीर के किनारे पर भी पढ़े जा सकें / these can fall over the backdrop *or*
+       over a bright edge of the photograph, so they carry their own dark disc
+       instead of relying on whatever happens to be behind them. */
+    background: rgba(16, 14, 12, 0.72);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(236, 228, 214, 0.38);
+    color: var(--ink);
     cursor: pointer;
     font-family: inherit;
     line-height: 1;
@@ -405,8 +414,9 @@ const emptySlots = Math.max(0, 3 - photos.length);
 
   .lightbox__close:hover,
   .lightbox__nav:hover {
-    background: rgba(224, 101, 76, 0.22);
+    background: rgba(224, 101, 76, 0.9);
     border-color: var(--kite);
+    color: #fff;
   }
 
   .lightbox__close:focus-visible,
@@ -423,11 +433,13 @@ const emptySlots = Math.max(0, 3 - photos.length);
 
   .lightbox__close {
     position: absolute;
-    top: -0.5rem;
+    top: 1.5rem;
     right: -0.5rem;
-    width: 2.4rem;
-    height: 2.4rem;
-    font-size: 1.5rem;
+    /* 2.4rem उँगली से दबाने लायक़ कम से कम नाप से छोटा था.
+       2.4rem sat under the usual minimum for a touch target. */
+    width: 2.8rem;
+    height: 2.8rem;
+    font-size: 1.6rem;
     z-index: 2;
   }
 

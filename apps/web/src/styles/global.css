@@ -316,8 +316,11 @@ body {
 }
 
 .act {
-  background: none;
-  border: 1px solid var(--rule);
+  background: rgba(236, 228, 214, 0.04);
+  /* --rule (13% cream) एक पंक्ति खींचने के लिए ठीक है, बटन का किनारा बनाने के
+     लिए नहीं — पिल दिखते ही नहीं थे. A 13% rule is right for a divider and too
+     faint for a control's edge; these read as floating text before. */
+  border: 1px solid rgba(236, 228, 214, 0.22);
   border-radius: 2rem;
   padding: 0.5rem 1.1rem;
   cursor: pointer;
@@ -338,9 +341,64 @@ body {
 }
 
 .act--icon {
-  padding: 0.5rem 0.8rem;
-  font-size: 1rem;
+  padding: 0.55rem;
   line-height: 1;
+  width: 2.6rem;
+  height: 2.6rem;
+  justify-content: center;
+}
+
+.act--icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+/* ── हर काम का अपना रंग / a colour per action ────────────────────────────────
+   तीनों बटन एक जैसे धूसर थे, इसलिए पहचानने के लिए हर बार पढ़ना पड़ता था. अब रंग
+   ख़ुद बता देता है: WhatsApp अपना हरा, साझा करना स्लेट, नक़ल करना क्रीम.
+   All three were the same grey, so telling them apart meant reading the tooltip.
+   Colour does that work now — and each is checked against the page background:
+   WhatsApp green 9.26:1, slate 7.97:1, cream 14.55:1, terracotta 5.37:1. */
+.act--wa {
+  color: #25d366;
+  border-color: rgba(37, 211, 102, 0.35);
+}
+
+.act--wa:hover {
+  color: #25d366;
+  border-color: #25d366;
+  background: rgba(37, 211, 102, 0.12);
+}
+
+.act--native {
+  color: var(--kite-2);
+  border-color: rgba(143, 176, 188, 0.35);
+}
+
+.act--native:hover {
+  color: var(--kite-2);
+  border-color: var(--kite-2);
+  background: rgba(143, 176, 188, 0.12);
+}
+
+.act--copy {
+  color: var(--ink);
+  border-color: rgba(236, 228, 214, 0.28);
+}
+
+.act--copy:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: rgba(236, 228, 214, 0.1);
+}
+
+/* दिल हमेशा terracotta / the heart is always terracotta, liked or not — it is
+   what the button *is*, so it should not need reading. पहले यह बाक़ी लिखावट के
+   साथ धूसर था और दबाने के बाद ही रंग पकड़ता था. */
+.act--like .act__icon {
+  color: var(--kite);
+  font-size: 1.05rem;
 }
 
 /* पसंद दर्ज हो चुकी / already liked: filled, and no longer a button that acts. */
@@ -379,7 +437,11 @@ body {
 
 .act__share-label {
   font-size: 0.82rem;
-  color: var(--ink-faint);
+  /* --ink-faint (#6d6458) कागज़ पर सिर्फ़ 3.16:1 था — इस नाप की लिखावट के लिए
+     कम. --ink-soft 6.47:1 देता है.
+     --ink-faint measured 3.16:1 on --paper, under the 4.5:1 wanted at this
+     size; --ink-soft gives 6.47:1. */
+  color: var(--ink-soft);
   letter-spacing: 0.05em;
 }
 

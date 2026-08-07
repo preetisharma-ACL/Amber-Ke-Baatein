@@ -31,17 +31,45 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
   <div class="act__share">
     <span class="act__share-label">साझा कीजिए / Share</span>
 
-    <button class="act act--icon" type="button" data-share="native" hidden title="साझा कीजिए / Share">
-      <span aria-hidden="true">⤴</span><span class="sr-only">साझा कीजिए / Share</span>
+    {/*
+      ── अक्षर नहीं, असली चिह्न / real icons, not text glyphs ───────────────────
+      पहले यहाँ ⤴ ✆ ⧉ लिखे थे. दिक़्क़त सिर्फ़ रंग की नहीं थी: `✆` कई fonts में
+      होता ही नहीं, इसलिए किसी-किसी मशीन पर वह ख़ाली डिब्बा या कुछ भी नहीं दिखता.
+      SVG हर जगह एक जैसा बनता है और उसे रंग भी दिया जा सकता है.
+
+      These were the characters ⤴ ✆ ⧉. The problem was not only colour: `✆` is
+      absent from many font stacks, so on some machines it rendered as a blank
+      or as tofu. An inline SVG draws identically everywhere and can be
+      coloured, which a glyph inheriting one text colour cannot.
+    */}
+    <button class="act act--icon act--native" type="button" data-share="native" hidden
+            title="साझा कीजिए / Share">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="18" cy="5" r="2.6" stroke="currentColor" stroke-width="1.7" />
+        <circle cx="6" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7" />
+        <circle cx="18" cy="19" r="2.6" stroke="currentColor" stroke-width="1.7" />
+        <path d="M8.4 10.7 15.6 6.4M8.4 13.3 15.6 17.6" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" />
+      </svg>
+      <span class="sr-only">साझा कीजिए / Share</span>
     </button>
 
-    <a class="act act--icon" data-share="whatsapp" target="_blank" rel="noopener noreferrer"
+    <a class="act act--icon act--wa" data-share="whatsapp" target="_blank" rel="noopener noreferrer"
        href="#" title="WhatsApp पर भेजिए / Send on WhatsApp">
-      <span aria-hidden="true">✆</span><span class="sr-only">WhatsApp पर भेजिए / Send on WhatsApp</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 2.1.55 4.05 1.6 5.76L2 22l4.47-1.68a9.87 9.87 0 0 0 5.57 1.7h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-2.65 1 .71-2.58-.2-.31a8.19 8.19 0 0 1-1.26-4.37c0-4.53 3.69-8.22 8.22-8.22 2.2 0 4.26.86 5.81 2.41a8.17 8.17 0 0 1 2.41 5.82c0 4.53-3.69 8.22-8.22 8.22Zm4.51-6.16c-.25-.12-1.46-.72-1.69-.8-.22-.09-.39-.13-.55.12-.16.25-.63.8-.78.97-.14.16-.29.18-.53.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.13-.15.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47c-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.13.17 1.74 2.65 4.2 3.72.59.25 1.05.4 1.4.52.59.18 1.13.16 1.55.1.47-.07 1.46-.6 1.66-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29Z" />
+      </svg>
+      <span class="sr-only">WhatsApp पर भेजिए / Send on WhatsApp</span>
     </a>
 
-    <button class="act act--icon" type="button" data-share="copy" title="लिंक कॉपी कीजिए / Copy link">
-      <span aria-hidden="true">⧉</span><span class="sr-only">लिंक कॉपी कीजिए / Copy link</span>
+    <button class="act act--icon act--copy" type="button" data-share="copy"
+            title="लिंक कॉपी कीजिए / Copy link">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="9" y="9" width="11.5" height="11.5" rx="2.4" stroke="currentColor" stroke-width="1.7" />
+        <path d="M5.5 15.5A2 2 0 0 1 3.5 13.5v-8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2" stroke="currentColor"
+              stroke-width="1.7" stroke-linecap="round" />
+      </svg>
+      <span class="sr-only">लिंक कॉपी कीजिए / Copy link</span>
     </button>
   </div>
 
