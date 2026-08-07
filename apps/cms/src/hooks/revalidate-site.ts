@@ -1,7 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  GlobalAfterChangeHook,
+} from 'payload'
 
 /**
  * रचना छपते ही साइट पर दिखे / make a published post show up on the site.
@@ -80,3 +84,20 @@ export const revalidateAfterDelete: CollectionAfterDeleteHook = ({ doc, req }) =
   revalidate(req.payload.logger, `${String(doc?.slug ?? 'post')} deleted`)
   return doc
 }
+
+/**
+ * global के लिए वही काम / the same thing, for a global.
+ *
+ * global में slug doc के अंदर नहीं होता, इसलिए नाम बाहर से दिया जाता है — और
+ * hook के arguments पर निर्भर नहीं रहना पड़ता।
+ *
+ * A global's document carries no slug to name it by, so the label is supplied
+ * at the call site. Written as a factory rather than reading the hook's
+ * `global` argument so this stays independent of that argument's shape.
+ */
+export const revalidateGlobal =
+  (label: string): GlobalAfterChangeHook =>
+  ({ doc, req }) => {
+    revalidate(req.payload.logger, `${label} saved`)
+    return doc
+  }

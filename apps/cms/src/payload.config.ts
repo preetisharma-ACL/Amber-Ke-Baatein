@@ -23,6 +23,7 @@ import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Videos } from './collections/Videos'
+import { SiteIdentity } from './globals/SiteIdentity'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -77,6 +78,14 @@ export default buildConfig({
    */
   defaultDepth: 0,
   collections: [Posts, Categories, Gallery, Audio, Videos, Media, Comments, Users],
+
+  /**
+   * लेखक का परिचय — एक ही है, इसलिए global.
+   * The author's identity: one author, one form, one Save. Read publicly by the
+   * Astro build so the name on the homepage can be changed without touching
+   * code. See globals/SiteIdentity.ts.
+   */
+  globals: [SiteIdentity],
 
   // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
   // reachable at POST /api/draft-from-poem. Staff-only; see the handler.

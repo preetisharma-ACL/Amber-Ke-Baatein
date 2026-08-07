@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+/**
+ * पन्ना न मिलने पर / the not-found page.
+ *
+ * ── यह बनता कैसे है / how this reaches a reader ─────────────────────────────
+ * Astro `output: 'static'` में इस फ़ाइल से `dist/404.html` बनाता है। पर static
+ * फ़ाइलें परोसने वाला server अपने आप उसे नहीं उठाता — Nginx को बताना पड़ता है:
+ *
+ *   error_page 404 /404.html;
+ *
+ * बिना उस एक पंक्ति के यह फ़ाइल बनती तो है, पर पाठक को Nginx का सादा सफ़ेद
+ * "404 Not Found" ही दिखता है।
+ *
+ * Astro emits this as `dist/404.html`, but a static file server will not use it
+ * unless told to. Without `error_page 404 /404.html;` in the Nginx server block
+ * this file is built and never served, and the reader still gets Nginx's bare
+ * default page.
+ *
+ * ── यहाँ खोज या सुझाव क्यों नहीं / why no search or suggestions ──────────────
+ * यह पन्ना सबसे ज़्यादा तब खुलेगा जब कोई पुराना या टूटा लिंक खोला जाए। ऐसे में
+ * पाठक को अटकलें नहीं, रास्ता चाहिए — इसलिए दो सीधे लिंक, और कुछ नहीं।
+ *
+ * This is reached mostly from a stale or mistyped link. A reader in that
+ * position wants a way out, not guesses — so two plain links and nothing else.
+ * A search box would also need JavaScript and an index the static site does not
+ * build.
+ */
+---
+
+<BaseLayout title="पन्ना नहीं मिला" description="अम्बर की बातें — यह पन्ना नहीं मिला।">
+  <section class="page">
+    <div class="page-head">
+      <h2>यह पन्ना नहीं मिला</h2>
+      <div class="sub">शायद पता बदल गया</div>
+    </div>
+
+    <div class="prose">
+      <p class="lead">
+        आप जो ढूँढ रहे हैं वह यहाँ नहीं है — या तो उसका पता बदल गया, या वह कभी
+        बना ही नहीं।
+      </p>
+      <p>कोई बात नहीं। रचनाएँ अपनी जगह पर हैं।</p>
+      <div class="ornament">✦ ✦ ✦</div>
+    </div>
+
+    <div class="lost-nav">
+      <a class="btn" href="/">होम</a>
+      <a class="btn" href="/posts">सारी रचनाएँ</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .lost-nav {
+    display: flex;
+    justify-content: center;
+    /* छोटे परदे पर एक के नीचे एक / wrap rather than shrink on a narrow phone */
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 0.5rem;
+  }
+</style>

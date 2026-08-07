@@ -1,6 +1,9 @@
 ---
-import { Image, getImage } from 'astro:assets';
+import { getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import { site } from '../data/site';
+import { getIdentity, type IdentityImage } from '../utils/identity';
+import { cloudinaryVariant } from '../utils/gallery';
 import kiteSky from '../assets/kite-sky.jpg';
 import portrait from '../assets/alok-portrait.jpg';
 
@@ -11,12 +14,78 @@ import portrait from '../assets/alok-portrait.jpg';
  * The background photo used to be a base64 blob inside a CSS custom property.
  * It is now a real asset, optimized at build time and handed to CSS through
  * an inline `--kite-img` variable.
+ *
+ * ── नाम कहाँ से आता है / where the name comes from ───────────────────────────
+ * `site` में साइट की अपनी बातें हैं — नाम "अम्बर की बातें", tagline. `identity`
+ * में लेखक की — नाम, भूमिका, परिचय, दस्तख़त, जो `/admin` → परिचय से बदलते हैं।
+ *
+ * `site` holds the publication's own branding (its title, its tagline), which
+ * lives in code. `identity` holds the author's, which is edited in the CMS —
+ * the name below appears twice on this page and both come from one field.
  */
-const kiteBg = await getImage({ src: kiteSky, format: 'webp', width: 1600 });
+const identity = await getIdentity();
+
+/**
+ * ── तस्वीर कहाँ से आए / where each picture comes from ─────────────────────────
+ * CMS में चढ़ाई हो तो वही, वरना repo वाली पुरानी. दोनों हालात में एक ही `src`
+ * निकलता है, इसलिए markup एक ही रहता है — दो अलग रास्ते नहीं।
+ *
+ * A CMS upload wins; otherwise the picture committed to the repo is used, so a
+ * site with an empty identity global renders exactly as it did before. Both
+ * paths reduce to one `src` string, which keeps the markup single-branch.
+ *
+ * ── आकार दोनों तरफ़ अलग तरीक़े से बनता है / two different resizers ─────────────
+ * repo वाली तस्वीरें Astro build के वक़्त बदलता है। Cloudinary वाली URL से बदलती
+ * हैं — उन्हें Astro से दोबारा उतारकर संवारना दुगना काम होता, और `image.domains`
+ * भी खोलना पड़ता. `f_auto` browser के हिसाब से WebP/AVIF चुन ही लेता है।
+ *
+ * Bundled assets are optimized by Astro at build time. Cloudinary images are
+ * resized from the URL instead: routing them through Astro would mean
+ * downloading and re-encoding a file a CDN already serves in the right format,
+ * and would need `image.domains` opened up. `f_auto` picks WebP or AVIF per
+ * browser, which is what Astro would have done anyway.
+ */
+async function localSrc(asset: ImageMetadata, width: number): Promise<string> {
+  return (await getImage({ src: asset, format: 'webp', width })).src;
+}
+
+function remoteSrc(img: IdentityImage, width: number): string {
+  return cloudinaryVariant(img.url, `w_${width},c_limit,f_auto,q_auto`);
+}
+
+/** पीछे की तस्वीर सजावट है — उसका alt नहीं होता / decorative, hence no alt. */
+const heroBgSrc = identity.heroImage
+  ? remoteSrc(identity.heroImage, 1600)
+  : await localSrc(kiteSky, 1600);
+
+const PORTRAIT_WIDTH = 440;
+
+const portraitSrc = identity.portraitImage
+  ? remoteSrc(identity.portraitImage, PORTRAIT_WIDTH)
+  : await localSrc(portrait, PORTRAIT_WIDTH);
+
+/**
+ * `alt` में तस्वीर का अपना विवरण, वरना नाम — फ़्रेम में लेखक ही होते हैं।
+ * The uploaded image's own alt text wins; the name is the sensible default,
+ * since this frame holds a portrait of the author. `media` requires alt on
+ * upload, so a CMS image effectively always has one.
+ */
+const portraitAlt = identity.portraitImage?.alt || identity.byline;
+
+/**
+ * ऊँचाई मूल अनुपात से / height from the source's own aspect ratio, so the
+ * browser reserves the right box before the file arrives. `.frame` का
+ * `aspect-ratio: 4/5` वैसे भी जगह पकड़ लेता है, यह उसके ऊपर एक और परत है।
+ */
+const portraitRatio = identity.portraitImage?.width && identity.portraitImage?.height
+  ? identity.portraitImage.height / identity.portraitImage.width
+  : portrait.height / portrait.width;
+
+const portraitHeight = Math.round(PORTRAIT_WIDTH * portraitRatio);
 ---
 
 <section class="hero" id="hero">
-  <div class="hero-photo" style={`--kite-img:url(${kiteBg.src})`}></div>
+  <div class="hero-photo" style={`--kite-img:url(${heroBgSrc})`}></div>
 
   <div class="hero-grid">
     <div class="hero-text">
@@ -32,22 +101,30 @@ const kiteBg = await getImage({ src: kiteSky, format: 'webp', width: 1600 });
       </svg>
       <h1>{site.title}</h1>
       <div class="tagline">{site.tagline[0]}<br />{site.tagline[1]}</div>
-      <div class="byline">{site.byline}</div>
+      <div class="byline">{identity.byline}</div>
       <div class="rule"></div>
     </div>
 
     <div class="hero-about">
       <div class="portrait">
         <div class="frame">
-          <Image src={portrait} alt={site.byline} width={440} loading="eager" />
+          <img
+            src={portraitSrc}
+            alt={portraitAlt}
+            width={PORTRAIT_WIDTH}
+            height={portraitHeight}
+            loading="eager"
+            decoding="async"
+          />
         </div>
-        <div class="datestamp">{site.portraitDatestamp}</div>
-        <div class="caption">{site.portraitCaption}</div>
+        <div class="datestamp">{identity.portraitDatestamp}</div>
+        <div class="caption">{identity.portraitCaption}</div>
       </div>
-      <h3>{site.byline}</h3>
-      <div class="role">{site.role}</div>
-      <p class="bio">{site.bio}</p>
-      <div class="signature">{site.signature}</div>
+      <h3>{identity.byline}</h3>
+      <div class="role">{identity.role}</div>
+      {/* बायो न हो तो खाना ही न बने / no empty paragraph when there is no bio */}
+      {identity.bio && <p class="bio">{identity.bio}</p>}
+      <div class="signature">{identity.signature}</div>
     </div>
   </div>
 
@@ -175,7 +252,11 @@ const kiteBg = await getImage({ src: kiteSky, format: 'webp', width: 1600 });
     background: #e6ded2;
   }
 
-  .frame :global(img) {
+  /* पहले यहाँ `:global(img)` था — तब तस्वीर <Image> component से आती थी, जिसका
+     markup इस component के scope से बाहर बनता है। अब <img> यहीं लिखा है।
+     Was `:global(img)`, which was needed while the picture came from Astro's
+     <Image> component and so fell outside this component's style scope. */
+  .frame img {
     width: 100%;
     height: 100%;
     object-fit: cover;

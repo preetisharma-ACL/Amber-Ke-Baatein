@@ -29,6 +29,17 @@ export interface PostData {
   order: number;
 }
 
+/** रचना के ऊपर लगने वाली तस्वीर / the picture shown under a post's heading. */
+export interface PostCover {
+  /** Cloudinary का मूल पता / the untransformed original. */
+  url: string;
+  alt: string;
+  /** तस्वीर के नीचे की पंक्ति / the optional line under it, from `media`. */
+  caption?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface Post {
   /** पते वाला हिस्सा / the slug, used as /posts/<id>. */
   id: string;
@@ -44,6 +55,20 @@ export interface Post {
   data: PostData;
   /** रचना का शरीर, HTML में / the body, already rendered from Lexical. */
   html: string;
+  /**
+   * मुख्य तस्वीर / the cover image, shown under the heading. `null` = कोई नहीं.
+   *
+   * यह `media` के साथ नहीं रखी गई: `media` में वे चीज़ें हैं जो रचना के *बग़ल* की
+   * पट्टी में जाती हैं और पन्ने को चौड़ा करती हैं। मुख्य तस्वीर शीर्षक के नीचे,
+   * पढ़ने की चौड़ाई में रहती है और layout नहीं बदलती।
+   *
+   * Deliberately not part of `media`: that groups what goes in the side rail
+   * and widens the page. A cover sits under the heading at the reading measure
+   * and changes no layout, so grouping the two would make `hasMedia` — which
+   * decides the two-column layout — accidentally true for a post that only has
+   * a cover.
+   */
+  cover: PostCover | null;
   /**
    * रचना के साथ सुनने-देखने की चीज़ें / optional media shown beside the poem.
    * Both are optional and independent: a post may have neither, either, or both.
@@ -73,6 +98,16 @@ interface CmsPost {
   content: LexicalRoot | null;
   audio?: { url?: string; title?: string } | number | null;
   videoUrl?: string | null;
+  coverImage?: CmsCoverImage | number | null;
+}
+
+/** depth=1 पर पूरा object; सिर्फ़ id आए तो तस्वीर नहीं मानी जाती. */
+interface CmsCoverImage {
+  url?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 interface CmsResponse {
@@ -133,6 +168,22 @@ async function fetchPosts(): Promise<Post[]> {
       order: doc.order ?? 0,
     },
     html: lexicalToHtml(doc.content),
+    /**
+     * बिना `url` वाली तस्वीर को "है ही नहीं" माना जाता है — अधूरा upload रचना के
+     * ऊपर टूटा हुआ खाना दिखाने से बेहतर है कि दिखे ही नहीं.
+     * A cover without a `url` counts as absent: a half-failed upload should
+     * leave the poem looking exactly as it did, not put a broken frame above it.
+     */
+    cover:
+      doc.coverImage && typeof doc.coverImage === 'object' && doc.coverImage.url
+        ? {
+            url: doc.coverImage.url,
+            alt: doc.coverImage.alt?.trim() || doc.title,
+            caption: doc.coverImage.caption?.trim() || undefined,
+            width: doc.coverImage.width ?? undefined,
+            height: doc.coverImage.height ?? undefined,
+          }
+        : null,
     media: {
       // depth=1 से audio पूरा आता है; सिर्फ़ id आए तो चुपचाप छोड़ दीजिए.
       // At depth=1 the upload is populated; if it ever arrives as a bare id

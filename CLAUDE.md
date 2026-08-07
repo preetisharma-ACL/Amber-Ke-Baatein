@@ -158,10 +158,19 @@ It is set on all three collections. Don't remove it to "tighten access" — thes
 hold public photographs, recitations and cover images, so there is no access
 control being given up.
 
-⚠️ **`url` is written into Postgres once, at upload — never recomputed on read.**
-So a row saved while something was misconfigured stays wrong forever, and
-**re-saving does not repair it** — the plugin does not regenerate `url` on
-update. Delete and re-upload, or rewrite the column directly.
+**`url` in Postgres can be stale, but it is not what gets served.** Measured on
+this database (2026-08-07, `plugin-cloud-storage` 3.87.0): rows `gallery` 1 and 2
+still store a `…/alok-kumar?_a=BAMAPqiu0` URL, while the API serves
+`…/alok-kumar` — the plugin regenerates `url` on read from the collection prefix
+plus `filename`, so the stored column is effectively a cache.
+
+This section previously warned that a row saved while something was
+misconfigured "stays wrong forever". That is **not** what this version does:
+because the URL is rebuilt on read, a stale or localhost value in the column
+does not reach the site. What still matters is **`filename`**, since that is
+what the regenerated URL is built from — a file that never actually reached
+Cloudinary yields a well-formed URL pointing at nothing. So verify uploads by
+fetching the image, not by reading the column.
 
 A second, separate trap: `onInit` returns early when the Cloudinary keys are
 missing, and `generateURL` used to assume it had run — so a server started
@@ -311,6 +320,64 @@ failing silently.
 ⚠️ Re-running `migrate:markdown` sets `_status` from each file's frontmatter, so
 it will **re-publish the guide post** that was deliberately set to draft. Set it
 back afterwards.
+
+## The author's name: the `identity` global
+
+The name showed up in four places on the homepage — hero byline, portrait `alt`,
+portrait heading, and the footer `©` line — all hardcoded in
+`apps/web/src/data/site.ts`. Changing it meant editing code, which put it out of
+reach of the person whose name it is.
+
+It now lives in a Payload **global**, `identity` (`/admin` → परिचय), holding
+byline, role, bio, signature, portrait caption, portrait datestamp, handle, an
+optional copyright line, and the homepage's **two pictures** — the hero
+background and the polaroid portrait. `apps/web/src/utils/identity.ts` reads it
+at build time; `Hero.astro` and `SiteFooter.astro` are the only consumers.
+
+### The two images
+
+- **They point at `media`, not `gallery`** — same split that keeps post covers
+  out of the public grid. A background photo is page furniture, not an exhibit.
+- **Both optional.** Empty → the site uses `src/assets/kite-sky.jpg` and
+  `src/assets/alok-portrait.jpg` exactly as before, so those files are live
+  fallbacks and must not be deleted.
+- **Two different resizers, on purpose.** Bundled assets go through Astro's
+  `getImage()` at build time; CMS images are resized by rewriting the Cloudinary
+  URL (`cloudinaryVariant`, shared with the gallery). Routing Cloudinary images
+  back through Astro would re-download and re-encode what a CDN already serves
+  correctly, and would need `image.domains` opened up.
+- **`c_limit`, never `c_fill`** — Cloudinary is not allowed to crop. `.frame`
+  has `aspect-ratio: 4/5` with `object-fit: cover`, so the browser decides the
+  crop. Server-side cropping would silently cut faces.
+- The portrait is a plain `<img>`, not `<Image>`, because the src may be remote.
+  That is also why the CSS is `.frame img` and no longer `.frame :global(img)`.
+- **The identity fetch asks for `?depth=1`.** `defaultDepth` is 0 project-wide;
+  at depth 0 both uploads arrive as bare ids and the homepage silently keeps the
+  bundled pictures — which looks like "the upload didn't work", not like a bug.
+
+- **A global, not a collection.** There is one author. A collection would show
+  an "add new" button and a list, leaving the publisher to guess which row the
+  site uses.
+- **`read` is public** — the static build fetches it unauthenticated. Nothing in
+  it is private; every field is printed on the homepage.
+- **Copyright is derived.** Leave the field blank and the footer renders
+  `© <byline>`, so the name reaches it too. That second hardcoded copy of the
+  name is precisely what this removed. An explicit value still wins.
+- **Saving triggers a rebuild**, via `revalidateGlobal()` in
+  `hooks/revalidate-site.ts` — the same path a published post takes. Without it
+  a changed name would sit in Postgres and never reach a reader.
+- **Unlike `utils/posts.ts`, this does not fail the build** when the CMS is
+  unreachable. Missing poems mean an empty site and must stop a build; a missing
+  name only means a stale one, so it warns and falls back.
+
+⚠️ **The values still in `site.ts` are fallbacks, not the source.** Editing them
+to change the name leaves the CMS and the code silently disagreeing — whichever
+the build reads wins. Change it in `/admin`.
+
+⚠️ **`site.description` still contains the name** (`"… आलोक कुमार सिंह।"`) and
+feeds `<meta name="description">` and `og:description` on every page. It is a
+sentence rather than a name field, so it was left in code — but a rename has to
+touch it by hand, or move it into the CMS as a site-settings field.
 
 ## Gotchas worth knowing
 

@@ -4,6 +4,7 @@ import Comments from '../components/Comments.astro';
 import PostActions from '../components/PostActions.astro';
 import PostMedia from '../components/PostMedia.astro';
 import { parseVideoUrl } from '../utils/embeds';
+import { cloudinaryVariant } from '../utils/gallery';
 import type { Post } from '../utils/posts';
 
 interface Props {
@@ -23,6 +24,40 @@ const { audioUrl, audioTitle, videoUrl } = post.media;
  * the poem full-width rather than sit beside an empty rail.
  */
 const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
+
+/**
+ * मुख्य तस्वीर / the cover image.
+ *
+ * ── यह `hasMedia` में क्यों नहीं गिनी जाती / why this does not count as media ──
+ * `hasMedia` तय करता है कि पन्ना दो स्तंभों में बँटेगा या नहीं। मुख्य तस्वीर बग़ल
+ * की पट्टी में नहीं जाती — वह शीर्षक के नीचे, पढ़ने की उसी चौड़ाई में रहती है।
+ * दोनों को एक साथ गिन लेते तो सिर्फ़ तस्वीर वाली रचना बेवजह चौड़ी हो जाती और
+ * उसके बग़ल में ख़ाली पट्टी दिखती।
+ *
+ * `hasMedia` decides the two-column layout. A cover never goes in the rail, so
+ * counting it there would widen a post that has nothing to put beside itself.
+ *
+ * ── आकार Cloudinary से / sized by Cloudinary ────────────────────────────────
+ * चढ़ाई गई तस्वीर 6000×4000 और 4MB तक की होती है। पढ़ने की चौड़ाई ~40rem (640px)
+ * है, इसलिए 1280px माँगा जाता है — retina परदे के लिए दुगुना, उससे ज़्यादा नहीं।
+ *
+ * Uploads run to 6000×4000 and several MB. The picture is capped at 28rem wide
+ * (see `--cover-max-w` in the styles), so 960px covers a 2× screen and nothing
+ * more. `c_limit` never crops and never upscales a smaller original; `f_auto`
+ * picks WebP or AVIF per browser.
+ */
+const coverSrc = post.cover
+  ? cloudinaryVariant(post.cover.url, 'w_960,c_limit,f_auto,q_auto')
+  : null;
+
+/**
+ * ऊँचाई पहले से बता दीजिए / reserve the box before the file arrives.
+ * बिना इसके तस्वीर आते ही रचना नीचे खिसक जाती है — पाठक की आँख उसी वक़्त पहली
+ * पंक्ति पर होती है. Without this the poem jumps down as the image loads,
+ * exactly when the reader's eye is on the first line.
+ */
+const coverRatio =
+  post.cover?.width && post.cover?.height ? post.cover.height / post.cover.width : null;
 ---
 
 <BaseLayout title={title} description={excerpt}>
@@ -33,6 +68,28 @@ const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
       <h2>{title}</h2>
       <div class="title-rule"></div>
     </header>
+
+    {/*
+      मुख्य तस्वीर, शीर्षक के ठीक नीचे / the cover, directly under the heading.
+      `.post__cols` से बाहर है, इसलिए मीडिया वाली रचना में भी यह चौड़ी नहीं होती —
+      पढ़ने की उसी चौड़ाई में रहती है जिसमें शीर्षक है.
+      Outside `.post__cols`, so it keeps the reading measure even on a post
+      whose body steps out into the wider two-column layout.
+    */}
+    {coverSrc && post.cover && (
+      <figure class="cover">
+        <img
+          src={coverSrc}
+          alt={post.cover.alt}
+          width={post.cover.width}
+          height={post.cover.height}
+          style={coverRatio ? `aspect-ratio:${post.cover.width}/${post.cover.height}` : undefined}
+          loading="eager"
+          decoding="async"
+        />
+        {post.cover.caption && <figcaption>{post.cover.caption}</figcaption>}
+      </figure>
+    )}
 
     <div class:list={['post__cols', { 'has-media': hasMedia }]}>
       {/*
@@ -87,6 +144,62 @@ const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
     text-align: center;
     margin: 0.85rem auto 1.5rem;
     max-width: 22ch;
+  }
+
+  /**
+   * मुख्य तस्वीर / the cover image.
+   *
+   * चौड़ाई पढ़ने की चौड़ाई जितनी ही — पन्ने भर की नहीं। रचना पहले है, तस्वीर
+   * उसके साथ है; पूरे परदे पर फैली तस्वीर शीर्षक से बड़ी लगने लगती है।
+   *
+   * Content width, not full-bleed. The writing leads and the picture
+   * accompanies it — stretched edge to edge it would outweigh the title it sits
+   * under. `margin-inline: auto` keeps it centred if the column is ever wider.
+   */
+  .cover {
+    margin: 0 auto 2.75rem;
+    max-width: 100%;
+  }
+
+  /**
+   * ── तस्वीर का आकार / how large the picture gets ─────────────────────────────
+   * पहले यह पूरी पढ़ने-चौड़ाई (40rem) लेती थी और शीर्षक से बड़ी दिखने लगती थी —
+   * पाठक पहले तस्वीर देखता, फिर कविता। यहाँ लिखाई पहले है।
+   *
+   * This used to fill the whole 40rem measure, which made it read as the main
+   * event — the eye landed on the photograph before the poem. Two caps instead
+   * of one, because one is never enough for both shapes: a landscape photo is
+   * limited by width, a portrait one by height. With `width`/`height: auto` the
+   * browser scales inside whichever cap binds first, so nothing is cropped and
+   * nothing is stretched.
+   *
+   * आकार बदलना हो तो बस ये दो नंबर / to resize, these two numbers are the only
+   * knobs — and `w_960` in the frontmatter should stay roughly twice
+   * `--cover-max-w` so a retina screen still gets a sharp image.
+   */
+  .cover img {
+    --cover-max-w: 28rem;
+    --cover-max-h: 20rem;
+
+    display: block;
+    margin: 0 auto;
+    width: auto;
+    height: auto;
+    max-width: min(100%, var(--cover-max-w));
+    max-height: var(--cover-max-h);
+    border-radius: 4px;
+    /* बाक़ी साइट की तरह हल्की लकीर / the same hairline the site uses elsewhere,
+       so a photograph with pale edges still reads as a framed object on a
+       near-black page rather than bleeding into it. */
+    border: 1px solid var(--rule);
+  }
+
+  .cover figcaption {
+    margin-top: 0.7rem;
+    text-align: center;
+    font-size: 0.86rem;
+    font-style: italic;
+    color: var(--ink-faint);
   }
 
   /**

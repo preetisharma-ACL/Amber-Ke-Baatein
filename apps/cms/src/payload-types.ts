@@ -99,8 +99,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    identity: Identity;
+  };
+  globalsSelect: {
+    identity: IdentitySelect<false> | IdentitySelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -641,6 +645,76 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * होम पन्ने पर दिखने वाला परिचय — नाम, भूमिका, दो पंक्तियाँ अपने बारे में, और दस्तख़त। Save करते ही साइट दोबारा बन जाती है।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity".
+ */
+export interface Identity {
+  id: number;
+  /**
+   * होम पन्ने पर दो जगह दिखता है — बाईं ओर और तस्वीर के नीचे — और नीचे की पट्टी में copyright में भी, अगर वह खाना खाली छोड़ा हो।
+   */
+  byline: string;
+  /**
+   * नाम के ठीक नीचे, छोटे अक्षरों में — जैसे "कवि"।
+   */
+  role?: string | null;
+  /**
+   * दो-तीन पंक्तियाँ — आप कहाँ के हैं, कब से लिखते हैं, और क्यों। ज़्यादा औपचारिक मत कीजिए।
+   */
+  bio?: string | null;
+  /**
+   * परिचय के नीचे हाथ की लिखावट वाला दस्तख़त। आमतौर पर सिर्फ़ पहला नाम — पूरा नाम यहाँ भरा तो पंक्ति टूट सकती है।
+   */
+  signature?: string | null;
+  /**
+   * होम पन्ने के पीछे पूरी चौड़ाई में दिखने वाली तस्वीर। चौड़ी (landscape) तस्वीर चुनिए — कम से कम 1600px चौड़ी। इसके ऊपर लिखावट आती है, इसलिए साइट इसे थोड़ा गहरा कर देती है। खाली छोड़ेंगे तो पतंगों वाली पुरानी तस्वीर ही रहेगी।
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * पोलरॉइड फ़्रेम में दिखने वाली तस्वीर। खड़ी (portrait) तस्वीर सबसे अच्छी लगती है — फ़्रेम 4:5 का है और बाक़ी हिस्सा अपने आप कट जाता है, इसलिए चेहरा बीच में रखिए। खाली छोड़ेंगे तो पुरानी तस्वीर ही रहेगी।
+   */
+  portraitImage?: (number | null) | Media;
+  /**
+   * पोलरॉइड के नीचे हाथ से लिखी-सी पंक्ति।
+   */
+  portraitCaption?: string | null;
+  /**
+   * पुराने कैमरे जैसी नारंगी तारीख़, तस्वीर के कोने में। जैसा लिखेंगे वैसा ही छपेगा — यह असली तारीख़ नहीं है, सजावट है।
+   */
+  portraitDatestamp?: string | null;
+  /**
+   * नीचे की पट्टी में दिखता है।
+   */
+  handle?: string | null;
+  /**
+   * खाली छोड़िए — तब "© <पूरा नाम>" अपने आप बन जाता है और नाम बदलने पर साथ ही बदल जाता है। कुछ और लिखना हो तभी भरिए।
+   */
+  copyright?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "identity_select".
+ */
+export interface IdentitySelect<T extends boolean = true> {
+  byline?: T;
+  role?: T;
+  bio?: T;
+  signature?: T;
+  heroImage?: T;
+  portraitImage?: T;
+  portraitCaption?: T;
+  portraitDatestamp?: T;
+  handle?: T;
+  copyright?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

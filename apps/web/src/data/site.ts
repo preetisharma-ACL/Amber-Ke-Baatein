@@ -1,6 +1,22 @@
 /**
  * साइट की स्थायी जानकारी / site-wide constants.
  * Defined once here and reused by the header, footer, contact page and <head>.
+ *
+ * ── लेखक का परिचय अब यहाँ से नहीं चलता / the author's identity is not driven
+ * from here any more ────────────────────────────────────────────────────────
+ * `byline`, `role`, `bio`, `signature`, `portraitCaption`, `portraitDatestamp`
+ * और `handle` अब CMS में हैं (`/admin` → परिचय)। नीचे लिखे मान सिर्फ़ आख़िरी
+ * सहारा हैं — CMS न पहुँचे तो साइट खाली नाम न दिखाए, इसलिए रखे हैं।
+ * **नाम बदलने के लिए यह फ़ाइल मत छेड़िए**, वरना CMS और code अलग हो जाएँगे।
+ *
+ * Those seven fields now live in the `identity` global in Payload and are read
+ * at build time by utils/identity.ts. The values below are only the fallback
+ * used if the CMS cannot be read, so the site renders a real name instead of an
+ * empty heading. **Do not edit them to change the name** — edit /admin →
+ * परिचय, or the two will silently disagree.
+ *
+ * The rest (`title`, `description`, `ogDescription`, `tagline`, `email`) is the
+ * publication's own branding rather than a person's details, and stays here.
  */
 
 export interface NavItem {
@@ -30,7 +46,13 @@ export const site = {
   portraitCaption: 'अपनी गली में',
   portraitDatestamp: "'२६ ०१ ०८",
   handle: '@ambarkibaatein',
-  copyright: '© आलोक कुमार सिंह',
+  /**
+   * copyright यहाँ नहीं है — नाम से अपने आप बनता है (`© <नाम>`).
+   * Deliberately absent: the footer derives `© <byline>` so a name change in
+   * the CMS reaches it too. A second hardcoded copy of the name here is exactly
+   * what this feature removed. Override it in /admin → परिचय if the line ever
+   * needs to say something other than the name.
+   */
   email: 'alok@aajneeti.social',
 } as const;
 
