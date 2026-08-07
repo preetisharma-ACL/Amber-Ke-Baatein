@@ -86,8 +86,33 @@
   --color-blue-950: #0a1013;
 }
 
-/* गहरी थीम / dark theme — the site's actual night palette. Payload already
-   inverts the elevation mapping, so only the anchors need moving. */
+/* ═════ गहरी थीम / dark theme ════════════════════════════════════════════════
+
+   ⚠️ यहाँ `--color-base-*` दोबारा मत लिखिए — ख़ासकर उलटे क्रम में नहीं.
+
+   पहले यहाँ पूरी ramp उलटी लिखी हुई थी (base-0 गहरा, base-1000 सफ़ेद). पर Payload
+   ख़ुद ही गहरी थीम में मानचित्रण उलटता है — `--theme-elevation-700` गहरे में
+   `--color-base-200` से आता है, 700 से नहीं (देखिए
+   @payloadcms/ui/dist/scss/colors.scss). दो बार उलटने से दोनों रद्द हो गए:
+   बायें nav की कड़ियाँ #2b2723 रंग में #171412 पट्टी पर छपने लगीं — गहरे पर गहरा,
+   लगभग अनदेखा. फ़ोन पर और गहरी थीम वाले Mac पर मेन्यू ख़ाली दिखता था.
+
+   ⚠️ Do not re-declare `--color-base-*` here, least of all reversed.
+
+   This block used to restate the whole ramp inverted (base-0 dark, base-1000
+   white). Payload already flips the elevation→base mapping for dark mode —
+   `--theme-elevation-700` reads from `--color-base-200` there, not `-700`
+   (see @payloadcms/ui/dist/scss/colors.scss). Two inversions cancelled out and
+   the sidebar links rendered #2b2723 on a #171412 panel: a 1.2:1 contrast
+   ratio, effectively invisible, which is what the menu looked like on phones
+   and on any Mac set to dark.
+
+   अब सिर्फ़ ब्रांड के रंग यहाँ हैं / only the brand anchors live here now. The
+   warm ramp above serves both themes: Payload's own inversion turns it into a
+   warm dark palette — elevation-0 becomes #14110e (near-black, matching the
+   site's --paper) and elevation-700 becomes #e0d8c9 (warm cream, ~13:1 on the
+   nav). That is the palette this file was reaching for in the first place.
+   ═══════════════════════════════════════════════════════════════════════════ */
 html[data-theme='dark'] {
   --amber-terracotta: #e0654c;
   --amber-terracotta-hover: #ef7961;
@@ -95,28 +120,6 @@ html[data-theme='dark'] {
 
   --amber-nav-bg: #171412;
   --amber-nav-border: #2b2723;
-
-  --color-base-0: #100e0c;
-  --color-base-50: #161412;
-  --color-base-100: #1c1917;
-  --color-base-150: #23201c;
-  --color-base-200: #2b2723;
-  --color-base-250: #342f29;
-  --color-base-300: #403a33;
-  --color-base-350: #4e463d;
-  --color-base-400: #5f5648;
-  --color-base-450: #6d6458;
-  --color-base-500: #837a6b;
-  --color-base-550: #978d7d;
-  --color-base-600: #a2988a;
-  --color-base-650: #b3a99a;
-  --color-base-700: #c2b8a8;
-  --color-base-750: #d2c8b8;
-  --color-base-800: #ded5c6;
-  --color-base-850: #e5ddd0;
-  --color-base-900: #ece4d6;
-  --color-base-950: #f4eee4;
-  --color-base-1000: #ffffff;
 }
 
 /* ═════ अक्षर / typography ═══════════════════════════════════════════════════
