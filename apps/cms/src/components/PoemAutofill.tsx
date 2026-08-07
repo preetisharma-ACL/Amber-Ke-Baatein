@@ -131,9 +131,25 @@ export const PoemAutofill: React.FC = () => {
       />
 
       <div className="poem-autofill__actions">
+        {/*
+          ⚠️ `btn--size-medium` ज़रूरी है, सजावट नहीं.
+
+          Payload का `.btn` चारों padding को 0 रखता है; असली padding सिर्फ़ नाप
+          वाली class से आती है (`.btn--size-medium` वग़ैरह — देखिए
+          @payloadcms/ui/dist/elements/Button/index.scss). बिना उसके लिखावट
+          बटन के किनारों से चिपक जाती है — देवनागरी में यह और बुरा लगता है,
+          क्योंकि मात्राएँ ऊपर-नीचे दोनों तरफ़ निकलती हैं।
+
+          Payload's `.btn` sets all four padding variables to 0; the real padding
+          comes only from a size modifier. Payload's own <Button> component
+          defaults to size="medium", so hand-written `btn btn--style-primary`
+          markup has to say so too or the label sits flush against the edges.
+          This is markup these buttons were missing, not a style to override in
+          custom.scss.
+        */}
         <button
           type="button"
-          className="btn btn--style-primary"
+          className="btn btn--style-primary btn--size-medium"
           onClick={run}
           disabled={busy || poem.trim().length < 20}
         >
@@ -150,10 +166,19 @@ export const PoemAutofill: React.FC = () => {
         <div className="poem-autofill__warn">
           <strong>पहले से कुछ लिखा हुआ है।</strong> भरने पर वह बदल जाएगा।
           <div className="poem-autofill__actions">
-            <button type="button" className="btn btn--style-primary" onClick={() => apply(pending)}>
+            {/* वही नाप वाली class यहाँ भी / same size class — see the note above. */}
+            <button
+              type="button"
+              className="btn btn--style-primary btn--size-medium"
+              onClick={() => apply(pending)}
+            >
               हाँ, बदल दीजिए / Replace
             </button>
-            <button type="button" className="btn btn--style-secondary" onClick={() => setPending(null)}>
+            <button
+              type="button"
+              className="btn btn--style-secondary btn--size-medium"
+              onClick={() => setPending(null)}
+            >
               रहने दीजिए / Cancel
             </button>
           </div>

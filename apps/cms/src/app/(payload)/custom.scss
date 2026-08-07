@@ -489,6 +489,19 @@ h1 {
     gap: 0.75rem;
     margin-top: 0.75rem;
     flex-wrap: wrap;
+
+    /* Payload हर बटन पर ~29px का ऊपर-नीचे margin लगाता है
+       (`margin-block: calc(var(--base) * 1.2)`), क्योंकि वहाँ बटन अकेले खड़े
+       होते हैं। यहाँ पंक्ति की दूरी `margin-top` और `gap` से तय है, इसलिए वह
+       margin जुड़कर बटन को बीच में तैरता हुआ दिखाता है।
+
+       Payload gives every button a ~29px block margin because its buttons
+       usually stand alone. This row sets its own spacing, so that margin only
+       adds a floating gap above and below. Scoped to this panel — Payload's
+       own buttons elsewhere keep their intended rhythm. */
+    .btn {
+      margin-block: 0;
+    }
   }
 
   &__note {
@@ -527,11 +540,620 @@ h1 {
   }
 }
 
-/* ═════ लॉगिन का पन्ना / login screen ════════════════════════════════════════ */
-.login {
-  &__brand,
-  &__wrap {
-    border-radius: 12px;
+/* ═════════════════════════════════════════════════════════════════════════════
+   लॉगिन का पन्ना / the login screen
+
+   दो पैनल: बाएँ तस्वीर, दाएँ form. कोई भी तस्वीर कटती नहीं.
+   Two panels — photograph left, form right — and the photograph is never
+   cropped.
+
+   ── तस्वीर क्यों `contain` है, `cover` नहीं / why `contain` ─────────────────
+   फ़ोटो 1080×730 की है, यानी चौड़ी. बायाँ पैनल लंबा-सा होता है. `cover` उसे भरने
+   के लिए दोनों किनारे काट देता था — आलोक जी का आधा कंधा और पीछे का कमरा ग़ायब.
+   `contain` पूरी तस्वीर दिखाता है और बची हुई जगह पैनल का अपना रंग भर देता है,
+   इसलिए ख़ाली जगह चूक नहीं, बनावट लगती है.
+
+   The photograph is 1080×730 — landscape — while the left panel is roughly
+   square. `cover` filled the panel by cutting both edges off. `contain` shows
+   the whole frame and lets the panel's own gradient fill what is left, so the
+   space around it reads as matting rather than as a mistake.
+
+   ── DOM (RSC payload से पढ़ा हुआ) / the real DOM ─────────────────────────────
+     .template-minimal
+       └ .template-minimal__wrap
+           ├ .login__brand   → .amber-login-brand   (components/Logo.tsx)
+           └ form            → the right-hand panel
+   दोनों सहोदर हैं — इसी वजह से दो पैनल बन पाते हैं / siblings, which is the only
+   reason a two-panel split is possible here.
+
+   ⚠️ admin में `1rem = 13px` है, 16px नहीं (`html { font-size: 13px }`).
+   ⚠️ In the admin `1rem` is 13px. Every size below is chosen against that.
+
+   जिस browser में `:has()` न हो, वहाँ Payload का सादा बीचोंबीच वाला पन्ना रहता
+   है — सादा, टूटा हुआ नहीं / without `:has()` this degrades to Payload's plain
+   centred page: plainer, never broken.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.template-minimal:has(.login__brand) {
+  padding: 0;
+  min-height: 100vh;
+  align-items: stretch;
+  justify-content: stretch;
+  background: #100e0c;
+
+  .template-minimal__wrap {
+    max-width: none;
+    width: 100%;
+    display: grid;
+    /* तस्वीर को 60%, form को 40% / the photograph takes 60% and the form 40%.
+       प्रतिशत में इसलिए, fr में नहीं — fr बचा हुआ हिस्सा बाँटता है, इसलिए किसी
+       खाने का सामान चौड़ा हुआ तो हिस्सा अपने आप खिसक जाता.
+       Written as percentages rather than fr: fr distributes *leftover* space, so
+       a wide field or a long word could quietly shift the ratio. These cannot. */
+    grid-template-columns: 60% 40%;
+    /* ⚠️ चार बच्चे हैं, दो नहीं: brand, intro, form, foot — `beforeLogin` और
+       `afterLogin` form के अंदर नहीं, उसके सहोदर बनकर आते हैं. अपने आप जगह
+       लेने पर form पहले खाने में, तस्वीर के नीचे चला जाता था.
+
+       ⚠️ Four children, not two: brand, intro, form, foot — Payload renders
+       `beforeLogin`/`afterLogin` as *siblings* of the form, not inside it
+       (verified by walking the DOM). Left to auto-placement the form dropped
+       into column 1, underneath the photograph. Every child is therefore
+       placed explicitly below. */
+    grid-template-rows: 1fr auto 1fr;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    min-height: 100vh;
+    isolation: isolate;
+  }
+
+  /* दाएँ खाने की उजली ज़मीन / the light ground behind column two.
+     यह form पर नहीं है क्योंकि अब वहाँ तीन चीज़ें हैं — स्वागत, form, और नीचे की
+     पंक्तियाँ — और तीनों के पीछे एक ही काग़ज़ होना चाहिए.
+     Not on the form any more: column two now holds three elements and all three
+     need to sit on one continuous sheet. A pseudo-element is a grid item too. */
+  .template-minimal__wrap::before {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / -1;
+    z-index: -2;
+    background: linear-gradient(200deg, #fdfaf5 0%, #f6f1e7 55%, #efe7d9 100%);
+    border-inline-start: 1px solid rgba(52, 46, 39, 0.1);
+  }
+
+  /* ── पत्तियों वाली बनावट / the botanical texture over the paper ─────────────
+     public/bg-shapes.jpeg — उजले काग़ज़ पर हल्की सी बनावट, ताकि दायाँ पैनल सादा
+     रंग का चौकोर न लगे.
+
+     ⚠️ यह परत `::before` के *ऊपर* होनी चाहिए, इसलिए काग़ज़ ::before पर गया और
+     बनावट ::after पर. दोनों को एक ही z-index देने पर ::after बाद में रँगता है
+     और काग़ज़ बनावट को ढँक लेता.
+
+     ⚠️ This has to paint *above* the paper, which is why the gradient moved to
+     `::before`: pseudo-elements at the same z-index paint in tree order, so an
+     `::after` gradient would simply cover the texture.
+
+     ── नीचे का हिस्सा काटा गया है / the foot is masked away ───────────────────
+     मूल फ़ाइल के नीचे-बाएँ कोने में एक watermark छपा है ("lemon8 @christal_h24").
+     इसलिए परत `center top` से लगी है और नीचे की चौथाई घुलकर ग़ायब हो जाती है —
+     watermark वहीं पड़ता है. फिर भी नीचे लिखी चेतावनी पढ़ लीजिए.
+
+     The source file carries a watermark in its lower-left corner. The layer is
+     anchored to the top and its bottom quarter is masked out, which is where
+     that mark falls — but see the note reported alongside this change. */
+  .template-minimal__wrap::after {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / -1;
+    z-index: -1;
+    background: url('/bg-shapes.jpeg') center top / cover no-repeat;
+    /* धीमी / kept faint: this is texture behind a form, not a picture. */
+    opacity: 0.32;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 88%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 88%);
+    pointer-events: none;
+  }
+
+  .login__brand {
+    display: flex;
+    width: auto;
+    margin-bottom: 0;
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+}
+
+/* ── बायाँ पैनल: तस्वीर / left panel: the photograph ─────────────────────────── */
+.amber-login-brand {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2.5rem;
+  padding: clamp(2rem, 3.5vw, 3.5rem);
+  color: #f5efe3;
+  position: relative;
+  isolation: isolate;
+
+  /* पतंग की पूँछ यहाँ हमेशा क्रीम / the kite's tail is cream on this panel,
+     whatever theme the admin is in. See components/Logo.tsx. */
+  --amber-kite-tail: #ece4d6;
+
+  background: #100e0c;
+  /* धीमी हरकत पैनल के बाहर न जाए / keeps the slow drift clipped to the panel. */
+  overflow: hidden;
+
+  /* ── तस्वीर की परत / the photograph, on its own layer ──────────────────────
+     पहले यह `contain` थी, इसलिए ऊपर-नीचे पट्टियाँ रह जाती थीं. अब `cover` —
+     पैनल पूरा भरता है. फ़ोटो चौड़ी (1080×730) और पैनल लंबा है, तो दाएँ-बाएँ से
+     कुछ कटता है; `center 40%` चेहरे को सुरक्षित रखता है और कटाई पीछे के कमरे
+     पर पड़ती है, जहाँ कुछ खोता नहीं.
+
+     Was `contain`, which left bands above and below. Now `cover`, so the panel
+     fills. The photograph is landscape and the panel is tall, so the crop falls
+     on the sides — biased to `center 40%` so it takes the room behind him
+     rather than his face.
+
+     अपनी परत पर इसलिए कि इसे हिलाया जा सके / on its own layer so it can move:
+     the element itself cannot be transformed without taking the text with it. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background: url('/alok-kumar.jpeg') center 40% / cover no-repeat;
+    /* हल्की सी जान / a touch of life in the grade, matching the site's warmth. */
+    /* तस्वीर की चमक कम / the photograph is dimmed.
+       मूल फ़ोटो में पीली रोशनी बहुत तेज़ है — उजले पैनल के बग़ल में वह और चुभती
+       थी. 0.78 पर वह पृष्ठभूमि बन जाती है, विषय नहीं, और सफ़ेद लिखावट उस पर
+       आराम से पढ़ी जाती है.
+       The original is lit hot and yellow, which glared beside a light panel.
+       At 0.78 it settles into being the backdrop rather than the subject, and
+       the white type over it stops fighting for contrast. */
+    filter: brightness(0.78) saturate(1.02) contrast(1.04);
+
+    /* ── धुँआ / the smoke ────────────────────────────────────────────────────
+       तस्वीर दाईं और नीचे की तरफ़ घुलकर पैनल के अँधेरे में मिल जाती है — किनारे
+       पर कोई सीधी लकीर नहीं बचती, इसलिए तस्वीर और form का जोड़ कटा हुआ नहीं,
+       धुँधलाकर ख़त्म होता दिखता है.
+
+       The photograph dissolves into the panel's darkness towards the right and
+       the bottom, so it no longer ends on a straight edge where it meets the
+       form. This is a mask, not a dark overlay on top: the picture genuinely
+       fades out, which reads as smoke rather than as a sheet of tint.
+
+       एक ही परत का mask इसलिए कि `mask-composite` की ज़रूरत न पड़े — केंद्र बाएँ-
+       ऊपर है, तो दूर के किनारे (दायाँ और नीचला) अपने आप पहले घुलते हैं.
+       Deliberately a single-layer mask so no `mask-composite` is needed: the
+       centre sits left-of-middle, so the far edges — right and bottom — are the
+       ones that fade first. Where masks are unsupported the photo simply shows
+       in full, which is the old behaviour, not a broken one. */
+    -webkit-mask-image: radial-gradient(135% 120% at 24% 36%, #000 40%, rgba(0, 0, 0, 0.35) 78%, transparent 96%);
+    mask-image: radial-gradient(135% 120% at 24% 36%, #000 40%, rgba(0, 0, 0, 0.35) 78%, transparent 96%);
+    /* बहुत धीमी सरकन / a very slow drift — 28s, and it never returns to the
+       start abruptly because it alternates. Slow enough to feel like the page
+       is breathing rather than animating. */
+    transform-origin: 55% 45%;
+    animation: amber-kenburns 28s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  /* ── परछाईं और किनारों का अँधेरा / scrim and vignette ──────────────────────
+     नीचे गहरा ताकि उद्धरण पढ़ा जाए, ऊपर गहरा ताकि निशान पढ़ा जाए, और किनारों पर
+     हल्का अँधेरा जो नज़र को बीच में रोके रखता है.
+     Dark at the foot for the quote, dark at the head for the mark, and a soft
+     vignette that keeps the eye in the middle instead of drifting to the edges. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      /* दाईं तरफ़ से आता धुँआ / smoke drifting in from the right, where the
+         form panel begins — this is what softens the seam between the two. */
+      linear-gradient(270deg, rgba(16, 14, 12, 0.9) 0%, rgba(16, 14, 12, 0.45) 16%, transparent 46%),
+      /* नीचे से उठता धुँआ / and rising from the foot, under the quote. */
+      linear-gradient(0deg, rgba(16, 14, 12, 0.95) 0%, rgba(16, 14, 12, 0.45) 20%, transparent 52%),
+      /* दो मुलायम गुबार, कोनों में / two soft billows in the far corners, so the
+         fade has some shape instead of reading as a flat gradient ramp. */
+      radial-gradient(58% 46% at 92% 74%, rgba(16, 14, 12, 0.72), transparent 72%),
+      radial-gradient(52% 42% at 66% 104%, rgba(16, 14, 12, 0.6), transparent 74%),
+      /* किनारों का हल्का अँधेरा / vignette, keeping the eye off the edges. */
+      radial-gradient(115% 95% at 44% 42%, transparent 40%, rgba(16, 14, 12, 0.5) 100%),
+      /* ऊपर की पट्टी, निशान के लिए / top scrim, for the mark. */
+      linear-gradient(180deg, rgba(16, 14, 12, 0.72) 0%, transparent 24%);
+  }
+
+  &__quote {
+    margin: 0;
+    max-width: 34rem;
+
+    p {
+      font-size: clamp(1.5rem, 2vw, 2.35rem);
+      font-weight: 400;
+      line-height: 1.8;
+      /* देवनागरी में इटैलिक अक्सर नक़ली होता है — इसलिए नहीं लगाया.
+         Synthetic italics distort Devanagari, so the quote is set upright and
+         given its weight by size and the rule beside it instead. */
+      color: #f5efe3;
+      text-shadow: 0 2px 24px rgba(0, 0, 0, 0.75);
+      margin: 0 0 1.3rem;
+      border-inline-start: 2px solid var(--amber-terracotta);
+      padding-inline-start: 1.25rem;
+    }
+
+    footer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding-inline-start: 1.25rem;
+    }
+  }
+
+  &__name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #f0a08c;
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.6);
+  }
+
+  &__role {
+    /* ⚠️ देवनागरी में चौड़ा letter-spacing मत दीजिए.
+       0.24em पर "कवि" टूटकर "क वि" पढ़ा जाता था — मात्रा अपने अक्षर से अलग दिखने
+       लगती है.
+
+       Wide tracking is a Latin small-caps mannerism. Applied to Devanagari it
+       pulled "कवि" apart into "क वि", detaching the matra from its consonant.
+       Kept only as a whisper. `text-transform` is dropped too: Devanagari has no
+       case, so it only ever affected a Latin half this label does not have. */
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    color: rgba(245, 239, 227, 0.66);
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* पतंग और नाम / the kite-and-name lockup, top of the left panel. */
+.amber-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+
+  &__word {
+    /* देवनागरी के लिए line-height ज़्यादा — मात्राएँ ऊपर-नीचे निकलती हैं.
+       The taller line-height is the same Devanagari allowance made elsewhere in
+       this file; at the default the matras clip against the mark beside them. */
+    font-size: 1.95rem;
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    color: #f5efe3;
+    white-space: nowrap;
+    text-shadow: 0 1px 16px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ── दायाँ पैनल: form / right panel: the form ────────────────────────────────
+   अब यह काँच नहीं, अपनी ज़मीन है. तस्वीर अब पूरे पन्ने पर नहीं है, इसलिए
+   `backdrop-filter` के पीछे धुँधलाने को कुछ बचा ही नहीं — काँच वहीं तक ठीक है
+   जहाँ उसके पीछे कुछ हो. यह पैनल ठोस है, और form सीधे उस पर बैठता है.
+
+   No longer glass. With the photograph confined to the left panel there is
+   nothing behind this one to blur, and `backdrop-filter` over a flat colour
+   just costs paint time for no effect. A solid panel is the honest version.
+
+   ── उजला पैनल, गहरी तस्वीर के बग़ल में / a light panel beside a dark photograph ──
+   यह पैनल admin की theme नहीं मानता — गहरी theme में भी उजला ही रहता है. वजह:
+   लॉगिन का पन्ना अपनी एक बनी-बनाई जोड़ी है (गहरी तस्वीर + उजला काग़ज़), और उसका
+   आधा हिस्सा theme के साथ पलट जाए तो जोड़ी टूट जाती है.
+
+   This panel does not follow the admin theme — it stays light in dark mode too.
+   The login screen is one composed pair, dark photograph against light paper,
+   and letting half of it invert would break the pairing. Colours are therefore
+   literal here rather than `--theme-elevation-*`. */
+.template-minimal:has(.login__brand) form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  grid-column: 2;
+  grid-row: 2;
+  padding: 0 clamp(1.75rem, 4vw, 4rem);
+
+  /* ⚠️ इस पन्ने पर खानों का डिब्बा `.login-fields` नहीं, `.login__form__inputWrap`
+     है — और बटन अपने `.form-submit` डिब्बे के अंदर बैठता है. `.login-fields`
+     Payload की CSS में तो है, पर लॉगिन के form में वह element बनता ही नहीं;
+     उस पर लिखे नियम चुपचाप बेअसर रहते हैं.
+
+     ⚠️ The fields wrapper here is `.login__form__inputWrap`, not `.login-fields`,
+     and the button lives inside a `.form-submit` div. `.login-fields` exists in
+     Payload's stylesheet but is never rendered by this form, so rules written
+     against it did nothing at all — verified by walking the form's children.
+
+     चौड़ाई तीनों पर देनी पड़ती है क्योंकि form `align-items: center` है, जिससे हर
+     बच्चा अपनी ही चौड़ाई तक सिमट जाता है (`.form-submit` 75px का रह गया था).
+     All three need an explicit width because the form centres its children,
+     which makes each shrink to its content — that is how the submit wrapper
+     ended up 75px wide and the button with it. */
+  .login__form__inputWrap,
+  .form-submit,
+  a {
+    width: min(26rem, 100%);
+  }
+
+  .login__form__inputWrap {
+    /* ⚠️ दूरी दो जगह से आती है / the spacing comes from two places.
+       इस file में ऊपर `.field-type { margin-bottom: 1.35rem }` लिखा है, और वह
+       यहाँ भी लागू होता है. इसलिए सिर्फ़ `gap` घटाने से कुल दूरी नहीं घटी —
+       21px gap + 17.5px margin = 39px, यानी लगभग जितनी पहले थी.
+       ⚠️ `.field-type { margin-bottom: 1.35rem }` earlier in this file applies
+       here too, so cutting the flex `gap` alone did nothing measurable: 21px
+       gap + 17.5px margin still came to 39px. The margin is dropped so the gap
+       is the single thing controlling this distance. */
+    .field-type {
+      margin-bottom: 0;
+    }
+
+    display: flex;
+    flex-direction: column;
+    /* खानों के बीच की दूरी / space between the two fields.
+       1.9 (≈38px) पर दोनों अलग-अलग जोड़े लगते थे; 1.05 (≈21px) पर वे एक ही
+       समूह के दो हिस्से लगते हैं, जो वे हैं.
+       At 1.9 (≈38px) the two fields read as separate groups. At 1.05 (≈21px)
+       they read as two parts of one, which is what they are. */
+    gap: calc(var(--base) * 1.05);
+  }
+
+  .form-submit .btn--style-primary {
+    width: 100%;
+  }
+
+  .field-label,
+  label {
+    color: #342e27;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    /* लेबल अपने खाने के पास, अगले खाने से दूर — तभी जोड़ी साफ़ दिखती है.
+       A label must sit nearer its own field than the fields sit to each other,
+       or the pairing reads the wrong way round. */
+    margin-bottom: 0.45rem;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'] {
+    background: #ffffff;
+    border-color: #ddd3c2;
+    color: #241f1a;
+    border-radius: 10px;
+    /* ⚠️ Payload खानों पर पक्की `height: 40px` लगाता है — इसलिए यहाँ
+       `padding-block` का ऊँचाई पर कोई असर नहीं होता, वह चुपचाप अनदेखा हो जाता है.
+       ऊँचाई बदलनी हो तो `height` ही लिखिए.
+
+       Payload sets an explicit `height: 40px` on inputs, so `padding-block`
+       changed nothing — measured 17.55px of padding on a box still exactly 40px
+       tall. Height has to be set directly. Padding is zeroed because a single-
+       line input centres its text in the content box on its own. */
+    height: 46px;
+    padding-block: 0;
+    padding-inline: 1.15rem;
+    font-size: 1.25rem;
+
+    &::placeholder {
+      color: #a1957f;
+    }
+
+    &:focus {
+      border-color: var(--amber-terracotta);
+      box-shadow: 0 0 0 3px rgba(224, 101, 76, 0.18);
+      background: #ffffff;
+    }
+
+    /* Chrome का autofill अपना नीला-सफ़ेद रंग ज़बरदस्ती लगाता है.
+       Chrome forces its own pale autofill background, which lands as an opaque
+       slab on a dark panel; this repaints it. */
+    &:-webkit-autofill {
+      -webkit-text-fill-color: #241f1a;
+      caret-color: #241f1a;
+      transition: background-color 9999s ease-out;
+    }
+  }
+
+  /* "भूल गए?" वाली कड़ी / the forgot-password link, aligned with the fields. */
+  a {
+    color: #6f6554;
+    text-decoration: none;
+    font-size: 1.05rem;
+    display: block;
+    text-align: start;
+    margin-block: 0.9rem 0.4rem;
+
+    &:hover {
+      color: var(--amber-terracotta);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  .btn--style-primary {
+    /* ऊँचाई खानों के बराबर, padding से निकाली हुई नहीं.
+       Height matched to the fields directly rather than derived from padding,
+       so the two cannot drift apart when a font or line-height changes.
+       Measured before this: button 51px against 40px fields. */
+    margin-block: 1rem 0;
+    height: 46px;
+    padding-block: 0;
+    font-size: 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 26px rgba(192, 83, 58, 0.28);
+  }
+}
+
+/* ── छोटे परदे पर / narrow screens ────────────────────────────────────────────
+   एक के नीचे एक: ऊपर तस्वीर वाला पैनल, नीचे form. उद्धरण हट जाता है — फ़ोन पर
+   पहले लॉगिन चाहिए, कविता बाद में. निशान रहता है, ताकि पन्ना बताए कि जगह कौन सी है.
+
+   Stacked: image panel above, form below. The quote steps aside — on a phone
+   the form is what the person came for — while the mark stays so the page still
+   says whose site this is. */
+@media (max-width: 60rem) {
+  .template-minimal:has(.login__brand) .template-minimal__wrap {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .amber-login-brand {
+    min-height: 34vh;
+    gap: 1.25rem;
+    padding: 1.75rem;
+    /* खड़े परदे पर तस्वीर ऊपर की पट्टी में — `cover` यहाँ ठीक है क्योंकि पट्टी
+       चौड़ी और नीची है, तस्वीर की तरह. On a narrow screen the panel becomes a
+       wide, short band whose proportions are close to the photograph's own, so
+       `cover` fills it without meaningful loss. */
+    background:
+      url('/alok-kumar.jpeg') center 28% / cover no-repeat,
+      linear-gradient(160deg, #1c1917, #100e0c);
+
+    &__quote {
+      display: none;
+    }
+  }
+
+  .amber-logo__word {
+    font-size: 1.6rem;
+  }
+
+  .template-minimal:has(.login__brand) form {
+    border-inline-start: 0;
+    border-top: 1px solid rgba(52, 46, 39, 0.1);
+    padding-block: 2.5rem;
+  }
+}
+
+
+
+/* ── दाएँ पैनल का स्वागत / the welcome at the head of the right panel ─────────
+   components/LoginIntro.tsx से आता है. चौड़ाई खानों जितनी ही रखी गई है, ताकि
+   शीर्षक और खाने एक ही सीध में शुरू हों.
+   From components/LoginIntro.tsx. Held to the same width as the fields so the
+   heading and the inputs share one left edge. */
+.amber-login-intro {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: clamp(2.5rem, 5vh, 4.5rem) clamp(1.75rem, 4vw, 4rem) clamp(1.4rem, 2.4vh, 2rem);
+
+  /* भीतर वाला डिब्बा खानों जितना चौड़ा / the inner box matches the field width,
+     so everything in the greeting shares one left edge with the inputs. */
+  &__inner {
+    width: min(26rem, 100%);
+  }
+
+  /* ── किताब और क़लम, शब्दों के दाईं ओर / the book and quill, right of the words
+     ───────────────────────────────────────────────────────────────────────────
+     पहले यह एक SVG नोक थी, घेरे में, शीर्षक के ऊपर. अब भेजी हुई तस्वीर शब्दों के
+     बाद बैठती है, इसलिए दोनों एक ही पंक्ति हैं.
+     Was an SVG nib in a disc above the heading; the supplied artwork now sits
+     after the words, so the two read as a single line. */
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0 0 0.55rem;
+  }
+
+  &__pen {
+    /* ऊँचाई से नापा गया, चौड़ाई से नहीं / sized by height so it keeps pace with the
+       words beside it whatever the heading clamps to. `width: auto` तस्वीर का
+       अपना अनुपात बनाए रखता है (348×324). */
+    height: clamp(2.6rem, 3.4vw, 3.6rem);
+    width: auto;
+    flex-shrink: 0;
+    /* हल्की परछाईं, ताकि कटी हुई तस्वीर काग़ज़ पर रखी हुई लगे, चिपकाई हुई नहीं.
+       A soft shadow so the cut-out sits on the paper rather than looking pasted
+       onto it — the alpha edge is otherwise very abrupt. */
+    filter: drop-shadow(0 3px 6px rgba(52, 46, 39, 0.18));
+  }
+
+  &__word {
+    /* ── serif, क्योंकि यह लेखक का पन्ना है / a serif, because this is a
+       writer's door ─────────────────────────────────────────────────────────
+       बाक़ी admin sans-serif में है और वैसा ही रहना चाहिए — वह औज़ार है. यह एक
+       पंक्ति स्वागत की है, काम की नहीं.
+
+       The rest of the admin is sans-serif and should stay that way — it is a
+       tool. This one line is a greeting rather than a control.
+
+       ⚠️ कोई webfont नहीं मँगाया गया / no webfont is fetched: the admin loads
+       none, and pulling in Google Fonts to style two words would be a poor
+       trade. System serif, which resolves to Georgia or Times where it matters. */
+    font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+    font-size: clamp(2.1rem, 2.8vw, 3rem);
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+
+    /* ⚠️ पहले सादा रंग, फिर gradient — इसी क्रम में.
+       `background-clip: text` के साथ रंग पारदर्शी करना पड़ता है, और अगर किसी
+       browser में वह न चले तो लिखावट ग़ायब हो जाती है. इसलिए `@supports` के
+       बाहर एक ठोस रंग रखा गया है, जो वहीं काम आता है.
+
+       ⚠️ Solid colour first, gradient only inside `@supports`. Gradient text
+       needs the colour to be transparent, so on a browser without
+       `background-clip: text` the heading would vanish entirely rather than
+       merely lose its gradient. The fallback below is what it falls back to. */
+    color: #8a3a24;
+
+    @supports (background-clip: text) or (-webkit-background-clip: text) {
+      /* project के अपने दो रंग / the project's own two colours: terracotta into
+         the slate-blue secondary, the same pairing the site uses. */
+      background: linear-gradient(104deg, #c0533a 0%, #8a3a24 46%, #4a7280 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  &__sub {
+    font-size: 1.15rem;
+    line-height: 1.85;
+    color: #6f6554;
+    margin: 0;
+    max-width: 24rem;
+  }
+
+  /* छोटी सी लकीर / a short rule, closing the greeting off from the fields —
+     साइट पर शीर्षक के नीचे यही लकीर है (PostLayout का `.title-rule`). */
+  &__rule {
+    display: block;
+    width: 3rem;
+    height: 1px;
+    margin-top: 1.6rem;
+    background: linear-gradient(90deg, var(--amber-terracotta), rgba(192, 83, 58, 0));
+  }
+}
+
+/* धीमी सरकन / the slow drift behind the login photograph. */
+@keyframes amber-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+/* जिन्हें हरकत से तकलीफ़ हो / motion is opt-out at the OS level, and this is
+   decoration — it must never be the reason someone cannot use the login page. */
+@media (prefers-reduced-motion: reduce) {
+  .amber-login-brand::before {
+    animation: none;
   }
 }
 

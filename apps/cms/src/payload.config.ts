@@ -50,6 +50,37 @@ export default buildConfig({
     meta: {
       titleSuffix: '— अम्बर की बातें',
     },
+
+    /**
+     * Payload का चिह्न हटाकर अपना पतंग / the site's kite in place of Payload's mark.
+     *
+     * `Icon` बायें nav के ऊपर और breadcrumb में; `Logo` लॉगिन के पन्ने पर.
+     * Icon appears at the top of the sidebar and in the breadcrumb bar; Logo
+     * replaces the Payload wordmark on the login screen. Both come from one
+     * file so the drawing cannot drift between them.
+     *
+     * ⚠️ यह रास्ता `importMap` से हल होता है — नया component जोड़ने या नाम बदलने
+     * पर `npm run generate:types` नहीं, **`npm run generate:importmap`** चलाइए,
+     * वरना admin चलते वक़्त "component not found" पर रुक जाता है।
+     *
+     * These string paths are resolved through the generated import map, so
+     * after adding or renaming a component run `npm run generate:importmap`.
+     * Forgetting it fails at runtime, not at build time.
+     */
+    components: {
+      graphics: {
+        Icon: '/components/Logo#Icon',
+        Logo: '/components/Logo#Logo',
+      },
+
+      /**
+       * लॉगिन के खानों के ऊपर स्वागत / the welcome above the login fields.
+       * Payload का form सिर्फ़ दो खाने और एक बटन है; आधे पन्ने के उजले पैनल में
+       * वह अधूरा लगता था. Payload's login form is two fields and a button,
+       * which reads as unfinished alone in a half-page panel.
+       */
+      beforeLogin: ['/components/LoginIntro#LoginIntro'],
+    },
     /**
      * <html> पर server और client का मेल न बैठने की चेतावनी बंद.
      *
