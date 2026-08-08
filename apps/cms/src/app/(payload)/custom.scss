@@ -991,49 +991,6 @@ h1 {
   }
 }
 
-/* ── छोटे परदे पर / narrow screens ────────────────────────────────────────────
-   एक के नीचे एक: ऊपर तस्वीर वाला पैनल, नीचे form. उद्धरण हट जाता है — फ़ोन पर
-   पहले लॉगिन चाहिए, कविता बाद में. निशान रहता है, ताकि पन्ना बताए कि जगह कौन सी है.
-
-   Stacked: image panel above, form below. The quote steps aside — on a phone
-   the form is what the person came for — while the mark stays so the page still
-   says whose site this is. */
-@media (max-width: 60rem) {
-  .template-minimal:has(.login__brand) .template-minimal__wrap {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-
-  .amber-login-brand {
-    min-height: 34vh;
-    gap: 1.25rem;
-    padding: 1.75rem;
-    /* खड़े परदे पर तस्वीर ऊपर की पट्टी में — `cover` यहाँ ठीक है क्योंकि पट्टी
-       चौड़ी और नीची है, तस्वीर की तरह. On a narrow screen the panel becomes a
-       wide, short band whose proportions are close to the photograph's own, so
-       `cover` fills it without meaningful loss. */
-    background:
-      url('/alok-kumar.jpeg') center 28% / cover no-repeat,
-      linear-gradient(160deg, #1c1917, #100e0c);
-
-    &__quote {
-      display: none;
-    }
-  }
-
-  .amber-logo__word {
-    font-size: 1.6rem;
-  }
-
-  .template-minimal:has(.login__brand) form {
-    border-inline-start: 0;
-    border-top: 1px solid rgba(52, 46, 39, 0.1);
-    padding-block: 2.5rem;
-  }
-}
-
-
-
 /* ── दाएँ पैनल का स्वागत / the welcome at the head of the right panel ─────────
    components/LoginIntro.tsx से आता है. चौड़ाई खानों जितनी ही रखी गई है, ताकि
    शीर्षक और खाने एक ही सीध में शुरू हों.
@@ -1267,4 +1224,131 @@ h1 {
 
 .delete-documents__toggle.list-selection__button:focus-visible {
   outline-color: #a8352a;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   ⚠️ यह हिस्सा फ़ाइल के आख़िर में ही रहना चाहिए / this block must stay last.
+
+   media query से specificity नहीं बढ़ती — सिर्फ़ क्रम चलता है. जब यह ऊपर था, तब
+   `.amber-login-intro` का सादा नियम (`grid-column: 2`) इसके *बाद* आता था और जीत
+   जाता था, इसलिए फ़ोन पर भी दोनों पैनल बग़ल-बग़ल दिखते रहे — media query चल रही
+   थी, फिर भी. `matchMedia` ने `true` लौटाया और खाने फिर भी 195px + 195px रहे.
+
+   A media query adds no specificity — only source order decides. While this sat
+   higher up, the plain `.amber-login-intro` rule (`grid-column: 2`) came after
+   it and won, so phones kept the side-by-side layout even though the query was
+   matching: `matchMedia` reported true and the columns still measured
+   195px + 195px. Anything added to the login styles goes ABOVE this block.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── छोटे परदे पर / narrow screens ────────────────────────────────────────────
+   एक के नीचे एक: ऊपर तस्वीर की पट्टी, नीचे उजला काग़ज़ — स्वागत ऊपर और form
+   सबसे नीचे, जहाँ अँगूठा पहुँचता है. उद्धरण हट जाता है: फ़ोन पर पहले लॉगिन
+   चाहिए, कविता बाद में.
+
+   Stacked: a photograph band on top, the light paper below it, with the
+   greeting at its head and the form at the very foot where a thumb reaches.
+   The quote steps aside — on a phone the form is what the person came for.
+
+   ⚠️ हर बच्चे की जगह यहाँ दोबारा तय करनी *पड़ती* है. बड़े परदे के नियम उन्हें
+   दूसरे खाने (`grid-column: 2`) में भेजते हैं, और सिर्फ़
+   `grid-template-columns: 1fr` लिख देने से वह नहीं मिटता — grid चुपचाप एक
+   अपने-आप का दूसरा खाना बना लेता है और फ़ोन पर भी दोनों पैनल बग़ल-बग़ल दिखते हैं.
+   यही हुआ था.
+
+   ⚠️ Every child's placement has to be restated here. The wide-screen rules put
+   them in `grid-column: 2`, and setting `grid-template-columns: 1fr` does not
+   undo that — grid quietly creates an *implicit* second column instead, so the
+   two panels stayed side by side on a phone. That is exactly what went wrong. */
+@media (max-width: 60rem) {
+  .template-minimal:has(.login__brand) .template-minimal__wrap {
+    grid-template-columns: 1fr;
+    /* तस्वीर, स्वागत, form / band, greeting, form — the last row takes the
+       slack so the form can sit at its foot. */
+    grid-template-rows: auto auto 1fr;
+  }
+
+  /* उजला काग़ज़ और बनावट अब तस्वीर के *नीचे* वाले हिस्से पर / the paper and its
+     texture now cover the rows below the photograph, not a right-hand column. */
+  .template-minimal:has(.login__brand) .template-minimal__wrap::before,
+  .template-minimal:has(.login__brand) .template-minimal__wrap::after {
+    grid-column: 1;
+    grid-row: 2 / -1;
+    border-inline-start: 0;
+  }
+
+  .template-minimal:has(.login__brand) .login__brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .amber-login-brand {
+    /* उद्धरण और नाम के लिए जगह / tall enough to hold the couplet and the name.
+       30vh पर सिर्फ़ निशान भर आता था. */
+    min-height: 44vh;
+    gap: 1rem;
+    padding: 1.5rem 1.5rem 1.75rem;
+
+    /* खड़े परदे पर तस्वीर चौड़ी-नीची पट्टी बन जाती है, इसलिए दाईं ओर घुलने वाला
+       mask यहाँ बेमानी है — नीचे की ओर घुलना ठीक बैठता है.
+       On a phone the panel is a wide, short band, so the right-edge dissolve
+       makes no sense; fading downward into the paper does. */
+    &::before {
+      background-position: center 26%;
+      -webkit-mask-image: linear-gradient(180deg, #000 74%, transparent 100%);
+      mask-image: linear-gradient(180deg, #000 74%, transparent 100%);
+    }
+
+    /* ── उद्धरण फ़ोन पर भी रहता है / the couplet stays on a phone ────────────
+       पहले यह `display: none` था — सोच यह थी कि फ़ोन पर पहले लॉगिन चाहिए. पर
+       यही दो पंक्तियाँ और नाम इस पन्ने को इस साइट का पन्ना बनाते हैं; उनके बिना
+       ऊपर सिर्फ़ एक तस्वीर रह जाती है. पट्टी ऊँची करके दोनों को जगह दी गई है.
+
+       This was `display: none` on the reasoning that a phone user wants the
+       form first. But the couplet and the name are what make this page belong
+       to this site — without them the band is just a photograph. The band was
+       made taller instead, so nothing has to be dropped. */
+    &__quote {
+      display: block;
+      max-width: none;
+
+      p {
+        font-size: 1.15rem;
+        line-height: 1.7;
+        margin-bottom: 0.7rem;
+        padding-inline-start: 0.85rem;
+      }
+
+      footer {
+        padding-inline-start: 0.85rem;
+      }
+    }
+
+    &__name {
+      font-size: 0.95rem;
+    }
+
+    &__role {
+      font-size: 0.8rem;
+    }
+  }
+
+  .amber-logo__word {
+    font-size: 1.6rem;
+  }
+
+  .amber-login-intro {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 1.75rem 1.5rem 1rem;
+  }
+
+  .template-minimal:has(.login__brand) form {
+    grid-column: 1;
+    grid-row: 3;
+    /* सबसे नीचे / pinned to the foot of the last row. */
+    justify-content: flex-end;
+    border-inline-start: 0;
+    padding: 0 1.5rem clamp(2rem, 5vh, 3.25rem);
+  }
 }
