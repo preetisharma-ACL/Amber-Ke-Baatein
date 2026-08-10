@@ -75,7 +75,18 @@ export default buildConfig({
        * वह अधूरा लगता था. Payload's login form is two fields and a button,
        * which reads as unfinished alone in a half-page panel.
        */
-      beforeLogin: ['/components/LoginIntro#LoginIntro'],
+      /**
+       * दूसरा component पासवर्ड वाली आँख है / the second entry is the show-hide
+       * eye on the password field. यह अपनी जगह कुछ नहीं दिखाता — `beforeLogin`
+       * सिर्फ़ इसे form के अंदर पहुँचाने का रास्ता है, आगे यह ख़ुद को उसी खाने के
+       * पास ले जाता है. It renders nothing where it is mounted; `beforeLogin` is
+       * only how it gets inside the form, from where it portals itself into the
+       * password field. See PasswordToggle.tsx for why it cannot be a field.
+       */
+      beforeLogin: [
+        '/components/LoginIntro#LoginIntro',
+        '/components/PasswordToggle#PasswordToggle',
+      ],
     },
     /**
      * <html> पर server और client का मेल न बैठने की चेतावनी बंद.

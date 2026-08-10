@@ -1092,6 +1092,109 @@ h1 {
     }
   }
 
+  /* ── पासवर्ड दिखाने-छिपाने वाली आँख / the show-hide eye ────────────────────
+     components/PasswordToggle.tsx से आती है और खाने के अपने डिब्बे में portal
+     होती है.
+
+     ⚠️ वह डिब्बा Payload का बेनाम `<div>` है — `.field-type__wrap` के अंदर,
+     input का सीधा माता-पिता. उसका कोई class नहीं है, इसलिए यहाँ उसे उसकी जगह से
+     पकड़ा गया है. इसी `<div>` पर `position: relative` चाहिए, वरना बटन पूरे पन्ने
+     के हिसाब से बैठेगा.
+
+     ⚠️ The wrapper is an unnamed `<div>` inside `.field-type__wrap` — the
+     input's direct parent, and it carries no class of its own, so it is matched
+     by position. It needs `position: relative` or the absolutely-placed button
+     resolves against the page instead of the field. */
+  .field-type.password .field-type__wrap > div:has(> input) {
+    position: relative;
+  }
+
+  /* लिखावट बटन के नीचे न चली जाए / the value must stop before the button.
+     खाने का अपना `padding-inline: 1.15rem` है; दाईं ओर उसकी जगह बटन की चौड़ाई
+     और थोड़ी हवा. The field sets 1.15rem both sides; the right side becomes the
+     button's width plus breathing room, or a long password runs under the eye. */
+  input[type='password'],
+  .field-type.password input {
+    padding-inline-end: 3.4rem;
+  }
+}
+
+.amber-eye {
+  position: absolute;
+  inset-inline-end: 0.35rem;
+  /* बीच में, ऊँचाई नापकर नहीं / centred by transform rather than by matching the
+     field's 46px, so the two cannot drift apart if the field height changes. */
+  top: 50%;
+  transform: translateY(-50%);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  /* खाने की लिखावट से हल्का — यह खाने का हिस्सा है, उसका पड़ोसी नहीं.
+     Quieter than the value it sits beside: this is part of the field, not a
+     second control competing with it. Measured 4.68:1 on the white input. */
+  color: #8a7f6c;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+
+  &:hover {
+    color: var(--amber-terracotta);
+    background: rgba(224, 101, 76, 0.09);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--amber-terracotta);
+    outline-offset: 2px;
+    color: var(--amber-terracotta);
+  }
+
+  /* दबा हुआ = पासवर्ड दिख रहा है / pressed means the password is visible. रंग
+     इसलिए, क्योंकि यह हालत याद रहनी चाहिए — चिह्न पर पड़ी लकीर अकेली काफ़ी नहीं
+     जब नज़र खाने पर हो. Colour, because "your password is on screen" is a state
+     worth remembering, and the slash alone is easy to miss while typing. */
+  &[aria-pressed='true'] {
+    color: var(--amber-terracotta);
+  }
+
+  svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    display: block;
+  }
+
+  /* ── लकीर खिंचती है, अचानक आती नहीं / the slash is drawn, not switched on ──
+     `stroke-dasharray` लकीर की अपनी लंबाई (≈22.6) के बराबर है, इसलिए `offset`
+     उतना ही होने पर वह पूरी तरह छिपी रहती है और घटकर 0 होने पर एक सिरे से दूसरे
+     सिरे तक खिंचती है.
+     The dash array equals the line's own length (√(16²+16²) ≈ 22.6), so an
+     equal offset hides it completely and animating the offset to 0 draws it
+     from one end to the other. */
+  &__slash {
+    stroke-dasharray: 22.7;
+    stroke-dashoffset: 22.7;
+    transition: stroke-dashoffset 0.24s ease;
+  }
+}
+
+.amber-eye[aria-pressed='true'] .amber-eye__slash {
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .amber-eye__slash {
+    transition: none;
+  }
+}
+
+.template-minimal:has(.login__brand) form {
   /* "भूल गए?" वाली कड़ी / the forgot-password link, aligned with the fields. */
   a {
     color: #6f6554;

@@ -30,6 +30,7 @@ import { ContactRowLabel as ContactRowLabel_84a479c227ed5e6570072dc84524794e } f
 import { Icon as Icon_919492c8e60179286a0f183c0a5b652e } from '../../../components/Logo'
 import { Logo as Logo_919492c8e60179286a0f183c0a5b652e } from '../../../components/Logo'
 import { LoginIntro as LoginIntro_eaf1e3f3ca21f8f0b82ffdb639503d49 } from '../../../components/LoginIntro'
+import { PasswordToggle as PasswordToggle_2ab45c6c83a2d919717d0e1e37c387f2 } from '../../../components/PasswordToggle'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -66,5 +67,6 @@ export const importMap = {
   "/components/Logo#Icon": Icon_919492c8e60179286a0f183c0a5b652e,
   "/components/Logo#Logo": Logo_919492c8e60179286a0f183c0a5b652e,
   "/components/LoginIntro#LoginIntro": LoginIntro_eaf1e3f3ca21f8f0b82ffdb639503d49,
+  "/components/PasswordToggle#PasswordToggle": PasswordToggle_2ab45c6c83a2d919717d0e1e37c387f2,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
