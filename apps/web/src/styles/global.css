@@ -562,7 +562,7 @@ body {
      कम. --ink-soft 6.47:1 देता है.
      --ink-faint measured 3.16:1 on --paper, under the 4.5:1 wanted at this
      size; --ink-soft gives 6.47:1. */
-  color: var(--ink-soft);
+  color: #e2dbd2;
   letter-spacing: 0.05em;
 }
 
