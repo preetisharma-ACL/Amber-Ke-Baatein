@@ -1,11 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { cloudStoragePlugin } from '@payloadcms/plugin-cloud-storage'
-import {
-  AlignFeature,
-  BlocksFeature,
-  CodeBlock,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical'
+import { AlignFeature, BlocksFeature, CodeBlock, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { config as loadEnv } from 'dotenv'
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -23,6 +18,7 @@ import { Media } from './collections/Media'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Videos } from './collections/Videos'
+import { SiteContact } from './globals/SiteContact'
 import { SiteIdentity } from './globals/SiteIdentity'
 
 const filename = fileURLToPath(import.meta.url)
@@ -111,12 +107,19 @@ export default buildConfig({
   collections: [Posts, Categories, Gallery, Audio, Videos, Media, Comments, Users],
 
   /**
-   * लेखक का परिचय — एक ही है, इसलिए global.
-   * The author's identity: one author, one form, one Save. Read publicly by the
-   * Astro build so the name on the homepage can be changed without touching
-   * code. See globals/SiteIdentity.ts.
+   * दो global — दोनों एक ही वजह से / two globals, both for the same reason.
+   *
+   * परिचय: लेखक एक ही है — एक form, एक Save. संपर्क: संपर्क का पन्ना एक ही है,
+   * और उसकी पंक्तियाँ पहले code में गड़ी थीं, इसलिए नया ठिकाना जोड़ना deploy का
+   * काम था.
+   *
+   * `identity` — the author's name and pictures; one author, one form, one Save.
+   * `contact` — the संपर्क page's rows; adding a platform used to mean editing
+   * the Astro source. Both are read publicly by the static build so the person
+   * whose name and addresses these are can change them without touching code.
+   * See globals/SiteIdentity.ts and globals/SiteContact.ts.
    */
-  globals: [SiteIdentity],
+  globals: [SiteIdentity, SiteContact],
 
   // कविता चिपकाकर खाने भरने वाला रास्ता / the Claude autofill endpoint,
   // reachable at POST /api/draft-from-poem. Staff-only; see the handler.

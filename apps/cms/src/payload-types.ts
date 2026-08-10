@@ -101,9 +101,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     identity: Identity;
+    contact: Contact;
   };
   globalsSelect: {
     identity: IdentitySelect<false> | IdentitySelect<true>;
+    contact: ContactSelect<false> | ContactSelect<true>;
   };
   locale: null;
   widgets: {
@@ -698,6 +700,57 @@ export interface Identity {
   createdAt?: string | null;
 }
 /**
+ * संपर्क पन्ने पर जो दिखता है — शीर्षक, ठिकानों की पंक्तियाँ, और नीचे की पंक्ति। Save करते ही साइट दोबारा बन जाती है।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact".
+ */
+export interface Contact {
+  id: number;
+  /**
+   * पन्ने के ऊपर बड़े अक्षरों में। खाली छोड़ेंगे तो "संपर्क" ही रहेगा।
+   */
+  heading?: string | null;
+  /**
+   * शीर्षक के ठीक नीचे की छोटी पंक्ति।
+   */
+  subheading?: string | null;
+  /**
+   * जितने ठिकाने चाहें जोड़िए — ईमेल, Instagram, YouTube, Facebook, WhatsApp, कुछ भी। बाईं ओर से खींचकर क्रम बदल सकते हैं। सारी पंक्तियाँ हटा देंगे तो पन्ने पर सिर्फ़ शीर्षक बचेगा।
+   */
+  rows?:
+    | {
+        /**
+         * ऊपर छोटे अक्षरों में — जैसे "ईमेल", "Instagram"।
+         */
+        label: string;
+        /**
+         * पाठक को यही पढ़ने को मिलता है — जैसे "@ambarkibaatein"। खाली छोड़ेंगे तो पता ही दिख जाएगा।
+         */
+        text?: string | null;
+        /**
+         * पूरा लिंक चिपकाइए — https://www.instagram.com/… । ईमेल हो तो सिर्फ़ पता लिखिए (alok@aajneeti.social), "mailto:" लगाने की ज़रूरत नहीं। फ़ोन के लिए tel:+91… चलेगा।
+         */
+        href: string;
+        /**
+         * खाली छोड़िए तो बटन नहीं आएगा। जैसे "Follow", "Subscribe"। ⚠️ बटन ख़ुद फ़ॉलो या subscribe नहीं करता — वह सिर्फ़ वहाँ ले जाता है जहाँ पाठक उनका अपना बटन दबाता है। कोई भी साइट दूसरी साइट की ओर से यह नहीं कर सकती।
+         */
+        buttonLabel?: string | null;
+        /**
+         * खाली छोड़ेंगे तो बटन ऊपर वाले पते पर ही ले जाएगा। YouTube के लिए लिंक के आख़िर में ?sub_confirmation=1 जोड़ने पर चैनल खुलते ही subscribe की डिबिया सामने आ जाती है।
+         */
+        buttonHref?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * डिब्बे के नीचे, हल्के रंग में। खाली छोड़ेंगे तो कुछ नहीं छपेगा।
+   */
+  note?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity_select".
  */
@@ -712,6 +765,28 @@ export interface IdentitySelect<T extends boolean = true> {
   portraitDatestamp?: T;
   handle?: T;
   copyright?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact_select".
+ */
+export interface ContactSelect<T extends boolean = true> {
+  heading?: T;
+  subheading?: T;
+  rows?:
+    | T
+    | {
+        label?: T;
+        text?: T;
+        href?: T;
+        buttonLabel?: T;
+        buttonHref?: T;
+        id?: T;
+      };
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

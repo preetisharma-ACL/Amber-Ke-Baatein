@@ -379,6 +379,47 @@ feeds `<meta name="description">` and `og:description` on every page. It is a
 sentence rather than a name field, so it was left in code — but a rename has to
 touch it by hand, or move it into the CMS as a site-settings field.
 
+## The contact page: the `contact` global
+
+`/contact` used to be three rows hardcoded in `apps/web/src/data/site.ts` —
+adding a fourth platform meant editing code and redeploying. The page now comes
+from a second global, `contact` (`/admin` → संपर्क): heading, subheading, a
+drag-orderable **rows** array, and a closing line.
+`apps/web/src/utils/contact.ts` reads it at build time; `contact.astro` fetches
+once and passes the rows to `ContactCard.astro`.
+
+Each row is `label`, `text`, `href`, plus an optional `buttonLabel` /
+`buttonHref` (the button appears only when a label is typed; a blank button link
+falls back to the row's).
+
+- **The author never types a URL scheme.** The CMS validator is deliberately
+  loose — it rejects only spaces and a bare `https://` — and `utils/contact.ts`
+  normalises: a bare email gets `mailto:`, a schemeless domain gets `https://`,
+  `/path` and `#anchor` are left alone. Requiring `mailto:` in the admin would
+  be asking the publisher to know what a scheme is.
+- **`external` is derived from the scheme, never typed.** A checkbox for it
+  would either open a blank tab for `mailto:` or navigate the reader off the
+  site, depending on which way the author got it wrong.
+- **An empty `rows` array is honoured; an unreachable CMS is not.** The
+  fallback in `site.ts` applies only when the fetch itself failed. Falling back
+  on an empty array would mean deleting a row silently does nothing — the worst
+  of the three outcomes. With no rows the card is not rendered at all, since an
+  empty bordered box reads as broken rather than deliberate.
+- **Rows missing a `label` or `href` are skipped**, same as the gallery skips
+  url-less rows — a half-filled row should not become a dead link.
+- The array uses a custom **`RowLabel`** (`components/ContactRowLabel.tsx`) so
+  collapsed rows say "Instagram" rather than "पंक्तियाँ 02". ⚠️ It resolves
+  through the import map — renaming it needs `npm run generate:importmap`, and
+  forgetting fails at runtime, not at build time.
+- `note` falls back to `''`, not to the built-in sentence: it is decoration, and
+  an author who clears it means to clear it. The heading and subheading do fall
+  back, because a page with no title is broken.
+
+⚠️ **The footer's social links are still `socials` in `site.ts`** and did not
+move. They are a different list with a `live` flag for the not-yet-existing
+Facebook page, so a platform added in `/admin` appears on `/contact` but not in
+the footer. Worth unifying if the two ever have to agree.
+
 ## Gotchas worth knowing
 
 - **`turbopack.root` must be the repo root**, not `apps/cms`. npm hoists `next`

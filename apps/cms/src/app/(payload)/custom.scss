@@ -28,6 +28,25 @@
   --amber-terracotta-soft: rgba(224, 101, 76, 0.11);
   --amber-slate: #4a7280;
 
+  /* ── भरे हुए बटन का terracotta / terracotta as a *fill*, behind white text ──
+     यह जान-बूझकर दोनों themes में एक ही है, जबकि `--amber-terracotta` गहरे में
+     हल्का हो जाता है.
+
+     वजह पढ़ने की है. गहरी theme में terracotta *अक्षरों* का रंग है — काली पट्टी पर
+     हल्का चाहिए, वरना दिखे ही न. पर वही हल्का रंग बटन के **पीछे** डालने पर सफ़ेद
+     लिखावट उस पर सिर्फ़ 3.4:1 पर बैठती है, जो 13px मोटे अक्षरों के लिए कम है
+     (WCAG AA माँगता है 4.5:1). गहरा वाला 4.6:1 देता है और काली पट्टी पर भी
+     साफ़ terracotta ही दिखता है.
+
+     Deliberately the same in both themes, unlike `--amber-terracotta`, which
+     lightens for dark mode. There it is a *text* colour and has to be light to
+     read on near-black. Put that same light shade *behind* white text and the
+     label lands at 3.4:1 — under the 4.5:1 AA needs for 13px bold. The darker
+     shade measures 4.6:1 and still reads unmistakably terracotta against a dark
+     panel, so the fill simply does not flip. */
+  --amber-terracotta-fill: #c0533a;
+  --amber-terracotta-fill-hover: #a3442e;
+
   /* बायें nav का अपना रंग / the sidebar's own surface.
      Payload ships .nav with no background at all — only a hairline border — so
      the panel reads as one flat sheet. This needs to be clearly distinct from
@@ -117,6 +136,10 @@ html[data-theme='dark'] {
   --amber-terracotta: #e0654c;
   --amber-terracotta-hover: #ef7961;
   --amber-terracotta-soft: rgba(224, 101, 76, 0.16);
+
+  /* ⚠️ `--amber-terracotta-fill` यहाँ जान-बूझकर नहीं बदला जा रहा — ऊपर की टिप्पणी
+     देखिए. Deliberately NOT overridden here; see the note where it is defined.
+     Lightening it would drop white-on-terracotta labels to 3.4:1. */
 
   --amber-nav-bg: #171412;
   --amber-nav-border: #2b2723;
@@ -259,16 +282,16 @@ td {
 
 /* ═════ बटन / buttons ════════════════════════════════════════════════════════ */
 .btn--style-primary {
-  background-color: var(--amber-terracotta);
-  border-color: var(--amber-terracotta);
+  background-color: var(--amber-terracotta-fill);
+  border-color: var(--amber-terracotta-fill);
   color: #fff;
   border-radius: 6px;
   font-weight: 600;
 
   &:hover,
   &:focus-visible {
-    background-color: var(--amber-terracotta-hover);
-    border-color: var(--amber-terracotta-hover);
+    background-color: var(--amber-terracotta-fill-hover);
+    border-color: var(--amber-terracotta-fill-hover);
     color: #fff;
   }
 }
@@ -280,6 +303,114 @@ td {
     border-color: var(--amber-terracotta);
     color: var(--amber-terracotta);
   }
+}
+
+/* ── गोली वाले बटन / the "pill" buttons ───────────────────────────────────────
+
+   "Create New" इसी शैली का है, और वह बिना बनी-ठनी दिखती थी — सादा भूरा चौकोर,
+   ऊपर-नीचे कोई जगह नहीं, नाम के बग़ल में चिपका हुआ।
+
+   ⚠️ यह Payload की चूक नहीं, दो नियमों का जोड़ है। `.btn--style-pill` रंग देता है
+   पर आकार नहीं, और साथ लगने वाला `.btn--size-small` ऊपर-नीचे की जगह **शून्य** कर
+   देता है:
+
+     --btn-padding-block-start: 0;
+     --btn-padding-block-end: 0;
+
+   यानी बटन की पूरी ऊँचाई सिर्फ़ line-height जितनी रह जाती है. नाम "pill" है, पर
+   गोलाई भी नहीं — `border-radius` वही छोटा `--style-radius-s` रहता है. इसलिए वह
+   बटन कम और लेबल ज़्यादा लगता था.
+
+   The "Create New" button reads as unstyled because two Payload rules add up:
+   `--style-pill` sets colours but no shape, and the `--size-small` that ships
+   with it zeroes the block padding outright, so the button's whole height is
+   its line-height. Despite the name it is not even round — the radius stays the
+   default small one. What lands on screen is a grey label, not a button.
+
+   ── यहाँ आकार दिया जा रहा है, रंग नहीं / this fixes the shape, not the colour ──
+   नीचे सिर्फ़ जगह, गोलाई और मोटाई तय होती है, इसलिए यह हर गोली पर लगता है — सूची
+   के ऊपर वाले बटन, तस्वीर चढ़ाने वाले खाने के "Create New / Choose from existing",
+   "Edit image", फ़ोल्डर वाले बटन. एक ही जगह ठीक होने से वे सब एक जैसे दिखते हैं.
+
+   Shape only, so it applies to every pill in the panel — the list header, the
+   upload field's two dropzone buttons, "Edit image", the folder toggles — and
+   they all end up the same shape instead of each looking accidental.
+
+   ⚠️ `--btn-*` variables को ही बदला गया है, `padding` को सीधे नहीं. Payload उन्हीं
+   से बटन बनाता है, तो icon वाले रूप और RTL अपने आप सही रहते हैं; सीधे `padding`
+   लिखने पर वे नियम टूट जाते.
+   Written as `--btn-*` overrides rather than a flat `padding`, because Payload
+   composes those same variables for icon-only and RTL variants. Overriding the
+   shorthand would flatten those cases. */
+/* ⚠️ admin में 1rem = **13px** है, 16 नहीं (Payload `html` पर
+   `font-size: var(--base-body-size)` = 13px लगाता है). इसलिए यहाँ के rem आँख के
+   अंदाज़े से छोटे पड़ते हैं — पहली कोशिश में `0.82rem` लिखा था, जो 10.7px निकला
+   और बटन खिलौना जैसा दिखा. नाप बदलने से पहले यह याद रखिए.
+
+   ⚠️ In this panel 1rem = **13px**, not 16 — Payload sets the root font size to
+   `--base-body-size`. Every rem here is therefore ~19% smaller than the same
+   number would be on the site. The first attempt at `0.82rem` measured 10.7px
+   and looked like a toy. Measure, do not eyeball. */
+.btn--style-pill {
+  --btn-padding-block-start: 0.5rem;
+  --btn-padding-block-end: 0.5rem;
+  --btn-padding-inline-start: 1.1rem;
+  --btn-padding-inline-end: 1.1rem;
+  --btn-line-height: 1.35;
+
+  --bg-color: var(--theme-elevation-50);
+  --color: var(--theme-elevation-700);
+  --btn-border: 1px solid var(--theme-elevation-200);
+  --hover-bg: var(--amber-terracotta-soft);
+  --hover-color: var(--amber-terracotta);
+  --hover-btn-border: 1px solid var(--amber-terracotta);
+
+  /* अब सचमुच गोली / actually a pill now. */
+  border-radius: 999px;
+  /* panel के सादे अक्षरों (13px) से ज़रा ही छोटा — बटन को अलग दिखाना है, दबा हुआ
+     नहीं. A shade under the panel's 13px body text: enough to read as a control
+     rather than as prose, not so small that it reads as a caption. */
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+
+  /* बाक़ी panel जैसा घेरा / the same focus ring the fields use, so keyboard
+     users get one consistent signal rather than the browser's default outline
+     on some controls and a terracotta ring on others. */
+  &:focus-visible {
+    box-shadow: 0 0 0 3px var(--amber-terracotta-soft);
+    outline: none;
+  }
+}
+
+/* ── "Create New" — पन्ने का मुख्य काम / the page's primary action ─────────────
+
+   सूची के पन्ने पर करने को एक ही असली चीज़ है: नई रचना जोड़ना. बाक़ी गोलियाँ हल्की
+   रहती हैं और यह भरी हुई — तब आँख को ढूँढना नहीं पड़ता.
+
+   A list page has exactly one thing to do, and this is it. The other pills stay
+   outlined and this one is filled, so the hierarchy is visible before anything
+   is read. यही terracotta Save/Publish का है (`.btn--style-primary` ऊपर), इसलिए
+   पूरे panel में "यह मुख्य बटन है" का एक ही रंग रहता है — the same terracotta as
+   Save and Publish, so "primary" means one colour everywhere in the panel.
+
+   तीनों class इसलिए / three selectors because Payload renders this button from
+   three different places with three different class names — the collection list
+   header, a list drawer, and the folder view. They are the same button to the
+   person using it, so they must not drift apart visually. */
+.list-create-new-doc__create-new-button,
+.list-header__create-new-button,
+.create-new-doc-in-folder__button {
+  --bg-color: var(--amber-terracotta-fill);
+  --color: #fff;
+  --btn-border: 1px solid var(--amber-terracotta-fill);
+  --hover-bg: var(--amber-terracotta-fill-hover);
+  --hover-color: #fff;
+  --hover-btn-border: 1px solid var(--amber-terracotta-fill-hover);
+
+  /* ज़रा-सा उठा हुआ / barely lifted. Enough to read as pressable next to the
+     flat table below it; more would look like a dialog floating on the page. */
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
 }
 
 /* ═════ सूची की table / list tables ══════════════════════════════════════════ */
@@ -1196,14 +1327,14 @@ h1 {
 /* छापना ही मुख्य काम है / Publish is the action the author came for, so it is
    the only filled one — the rest stay quiet outlines beside it. */
 .list-selection__button[aria-label='Publish'] {
-  background: var(--amber-terracotta);
-  border-color: var(--amber-terracotta);
+  background: var(--amber-terracotta-fill);
+  border-color: var(--amber-terracotta-fill);
   color: #fff;
 }
 
 .list-selection__button[aria-label='Publish']:hover {
-  background: var(--amber-terracotta-hover);
-  border-color: var(--amber-terracotta-hover);
+  background: var(--amber-terracotta-fill-hover);
+  border-color: var(--amber-terracotta-fill-hover);
   color: #fff;
 }
 

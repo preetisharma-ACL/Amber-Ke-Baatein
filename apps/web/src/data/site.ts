@@ -87,6 +87,21 @@ export const socials: SocialLink[] = [
 /**
  * संपर्क पन्ने की पंक्तियाँ / rows shown on the contact page.
  *
+ * ⚠️ **ये अब स्रोत नहीं हैं, सिर्फ़ आख़िरी सहारा हैं.** असली पंक्तियाँ CMS में हैं —
+ * `/admin` → संपर्क — ताकि नया ठिकाना जोड़ने के लिए code न बदलना पड़े। नीचे लिखी
+ * ये तीन पंक्तियाँ तभी दिखती हैं जब build के वक़्त CMS पहुँच से बाहर हो; तब पन्ना
+ * ख़ाली दिखने से अच्छा है कि पुराने पते ही दिख जाएँ।
+ *
+ * ⚠️ **No longer the source — only the fallback.** The contact rows live in the
+ * `contact` global in Payload (see apps/cms/src/globals/SiteContact.ts) and are
+ * read at build time by utils/contact.ts. These three are used only when the
+ * CMS is unreachable during a build, so the page shows real addresses rather
+ * than a heading with nothing under it. **Adding a platform here changes
+ * nothing** — add it in /admin.
+ *
+ * ध्यान दीजिए / note: an *empty* rows list in the CMS is honoured, not replaced
+ * by these. Deleting a row has to actually delete it; see utils/contact.ts.
+ *
  * ── साथ लगने वाला बटन / the optional action beside a row ────────────────────
  * `action` हो तो पंक्ति के नीचे एक बटन आता है। यह वैकल्पिक है — ईमेल वाली पंक्ति
  * को इसकी ज़रूरत नहीं, पता ख़ुद ही बटन है।

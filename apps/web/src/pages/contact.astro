@@ -1,22 +1,32 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ContactCard from '../components/ContactCard.astro';
+import { contactDescription, getContact } from '../utils/contact';
 
-/** संपर्क / contact. */
+/**
+ * संपर्क / contact.
+ *
+ * पूरा पन्ना CMS से आता है — शीर्षक, ठिकानों की पंक्तियाँ और नीचे की पंक्ति।
+ * एक ही बार पूछा जाता है और तीनों हिस्से उसी दस्तावेज़ से निकलते हैं.
+ *
+ * The whole page comes from the `contact` global: heading, rows and closing
+ * line, all out of one request. See utils/contact.ts.
+ */
+const contact = await getContact();
 ---
 
-<BaseLayout title="संपर्क" description="अम्बर की बातें — कुछ कहना हो तो।">
+<BaseLayout title={contact.heading} description={contactDescription}>
   <section class="page">
     <div class="page-head">
-      <h2>संपर्क</h2>
-      <div class="sub">कुछ कहना हो तो</div>
+      <h2>{contact.heading}</h2>
+      <div class="sub">{contact.subheading}</div>
     </div>
 
-    <ContactCard />
+    <ContactCard rows={contact.rows} />
 
-    <p class="foot-note">
-      कोई रचना अच्छी लगे तो बता दीजिएगा — लिखने वाले के लिए इतना ही बहुत होता है।
-    </p>
+    {/* खाली छोड़ी गई पंक्ति कुछ नहीं छापती / a cleared closing line renders
+        nothing at all, rather than an empty paragraph holding open a gap. */}
+    {contact.note && <p class="foot-note">{contact.note}</p>}
   </section>
 </BaseLayout>
 

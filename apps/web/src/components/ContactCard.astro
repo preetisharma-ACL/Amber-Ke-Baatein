@@ -1,35 +1,58 @@
 ---
-import { contactRows } from '../data/site';
+import type { ContactRow } from '../utils/contact';
 
-/** संपर्क की पंक्तियाँ / the email + social rows, driven by src/data/site.ts */
+/**
+ * संपर्क की पंक्तियाँ / the email + social rows.
+ *
+ * पंक्तियाँ अब CMS से आती हैं (`/admin` → संपर्क), code से नहीं। यह component
+ * उन्हें सिर्फ़ छापता है — कहाँ से आईं, यह पन्ना तय करता है, ताकि एक ही fetch से
+ * शीर्षक और पंक्तियाँ दोनों निकल आएँ। See utils/contact.ts.
+ *
+ * The rows come from the CMS. They are passed in rather than fetched here so
+ * the page makes one request for the whole page — heading, rows and closing
+ * line all come out of the same document.
+ */
+interface Props {
+  rows: ContactRow[];
+}
+
+const { rows } = Astro.props;
 ---
 
-<div class="contact-card">
-  {
-    contactRows.map((row) => (
-      <div class="contact-row">
-        <span class="lbl">{row.label}</span>
-        {row.external ? (
-          <a href={row.href} target="_blank" rel="noopener">
-            {row.text}
-          </a>
-        ) : (
-          <a href={row.href}>{row.text}</a>
-        )}
-        {/*
-          जिस पंक्ति के साथ बटन तय है, उसी पर / only on rows that declare one —
-          see contactRows in data/site.ts, where each button's reach and its
-          limits are written down.
-        */}
-        {'action' in row && row.action && (
-          <a class="btn contact-action" href={row.action.href} target="_blank" rel="noopener">
-            {row.action.label}
-          </a>
-        )}
-      </div>
-    ))
-  }
-</div>
+{
+  /*
+    एक भी पंक्ति न हो तो डिब्बा भी नहीं / no rows, no card.
+    सारी पंक्तियाँ हटा देने पर खाली डिब्बा छोड़ना — बॉर्डर के भीतर कुछ नहीं —
+    टूटा हुआ लगता है, जबकि वह जान-बूझकर की गई बात है.
+    An empty bordered box reads as broken rather than as deliberate.
+  */
+  rows.length > 0 && (
+    <div class="contact-card">
+      {rows.map((row) => (
+        <div class="contact-row">
+          <span class="lbl">{row.label}</span>
+          {row.external ? (
+            <a href={row.href} target="_blank" rel="noopener">
+              {row.text}
+            </a>
+          ) : (
+            <a href={row.href}>{row.text}</a>
+          )}
+          {/*
+            जिस पंक्ति के साथ बटन तय है, उसी पर / only on rows that declare one.
+            बटन का पता CMS में तय होता है; न भरा हो तो पंक्ति वाला ही चलता है —
+            utils/contact.ts देखिए.
+          */}
+          {row.action && (
+            <a class="btn contact-action" href={row.action.href} target="_blank" rel="noopener">
+              {row.action.label}
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 <style>
   .contact-card {
@@ -44,6 +67,16 @@ import { contactRows } from '../data/site';
   .contact-card a {
     color: var(--kite);
     text-decoration: none;
+
+    /*
+      लंबे पते डिब्बे से बाहर न निकलें / long links must not overflow the card.
+      पहले तीनों पते छोटे और चुने हुए थे; अब CMS से कोई भी लिंक आ सकता है, और
+      बिना टूटे एक लंबा URL फ़ोन पर डिब्बे को चौड़ा कर देता है.
+      The rows used to be three hand-picked short handles. Now that any link can
+      be pasted in /admin, an unbroken URL would stretch the card past the
+      viewport on a phone.
+    */
+    overflow-wrap: anywhere;
   }
 
   .contact-card a:hover {
