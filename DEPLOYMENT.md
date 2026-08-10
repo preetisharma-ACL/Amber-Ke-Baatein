@@ -258,7 +258,95 @@ This is the origin used for `<link rel="canonical">` and `og:url` on every page.
 page will advertise the wrong URL. (It is not an env var on purpose — a build
 without it would bake in the build server's `localhost`.)
 
-### 5.2 Netlify
+### 5.2 ⚠️ What is actually deployed today: nginx on a VPS
+
+**Read this before following §5.3–5.5.** Those sections describe hosts this
+project *could* use. It is not on any of them.
+
+Measured from outside on **10 Aug 2026**:
+
+| | |
+|---|---|
+| `ambarkibaatein.com` | `server: nginx/1.24.0 (Ubuntu)` — static files from disk |
+| `cms.ambarkibaatein.com` | the same nginx, reverse-proxying the Payload/Next server |
+| Every file's `Last-Modified` | one identical timestamp — the whole `dist` was copied up in one batch |
+| `/_astro/*` | `cache-control: max-age=2592000, public, immutable` |
+
+**The consequence that costs the most time:** nothing rebuilds this site. There
+is no CI in the repo — no `.github/workflows`, no `netlify.toml`, no
+`vercel.json` — and a plain nginx box has no build hook. **`git push` does not
+change the live site.** Neither does publishing a post.
+
+This has already caused one confusing afternoon. On 7 Aug the site was built and
+uploaded at 18:13 IST; commit `b8a1b6c`, which restyled the post share buttons,
+landed at 18:56 IST. For three days the change was on `main`, worked locally, and
+was invisible live — while CMS-only commits made the same week *did* appear,
+because the CMS is a running server that gets redeployed. The natural reading is
+"my push half-worked". Nothing had half-worked: two deployments, only one of them
+current.
+
+**A useful first check when a change is missing live:** compare the page's
+`Last-Modified` against the commit's date.
+
+```bash
+curl -sI https://ambarkibaatein.com/ | grep -i last-modified
+git log -1 --date=iso --pretty='%ad %s' -- apps/web
+```
+
+If the commit is newer than the file, nothing is broken — the site was never
+rebuilt. Also worth knowing which app a commit touched, since only `apps/web`
+needs this rebuild:
+
+```bash
+git show --stat --pretty='' <sha>
+```
+
+#### Deploying the site by hand
+
+```bash
+# 1. Build with the PRODUCTION urls. ⚠️ The root .env holds localhost values and
+#    PUBLIC_CMS_URL is baked into the HTML as data-cms — build without these and
+#    every like button and comment form on the live site points at localhost and
+#    silently fails. Real environment variables win over .env, so prefixing works.
+PUBLIC_CMS_URL=https://cms.ambarkibaatein.com \
+PUBLIC_SITE_URL=https://ambarkibaatein.com \
+npm run build:web
+
+# 2. Verify before uploading — three seconds, and it catches the mistake above.
+grep -rl localhost apps/web/dist   # must print nothing
+grep -o 'data-cms="[^"]*"' apps/web/dist/posts/*/index.html | head -1
+
+# 3. Copy apps/web/dist/* to whatever directory nginx serves (~21 files, ~930KB).
+```
+
+Uploading is a straight file copy — `rsync -av --delete apps/web/dist/ user@host:/var/www/<root>/`
+once you know the host and document root. **Those two facts are not recorded
+anywhere in this repo**; find them in nginx's config on the box
+(`/etc/nginx/sites-enabled/`, look for the `root` directive of the
+`ambarkibaatein.com` server block) and write them in here when you do.
+
+`--delete` matters: `_astro` filenames are content-hashed, so without it every
+build leaves its predecessors behind forever.
+
+The immutable caching is safe on its own — a changed file gets a new hash and a
+new name, so browsers fetch it. `index.html` files carry no `cache-control`, so
+they revalidate.
+
+#### Two things this setup does not do
+
+1. **Publishing a post never reaches the site** (§6). There is no build hook to
+   point `SITE_DEPLOY_HOOK_URL` at, so every publish needs the manual rebuild
+   above. Fixing this properly means a GitHub Actions workflow that builds and
+   rsyncs on push, plus a small authenticated endpoint the CMS can POST to.
+2. **The CMS deploys separately**, and forgetting it is its own confusing
+   failure: on 10 Aug the site was rebuilt with the new dynamic contact page
+   while the CMS still ran older code, so `/api/globals/contact` returned 404 and
+   the page quietly fell back to its built-in rows. That fallback is deliberate
+   (`apps/web/src/utils/contact.ts`) and it is *why* nothing looked broken — but
+   the new fields were not in `/admin` either. **Deploy the CMS first, then build
+   the site.** Same order as §0.
+
+### 5.3 Netlify
 
 | Setting | Value |
 |---|---|
@@ -267,7 +355,7 @@ without it would bake in the build server's `localhost`.)
 | Publish directory | `apps/web/dist` |
 | Environment | `PUBLIC_CMS_URL=https://cms.ambarkibaatein.com`, `NODE_VERSION=22` |
 
-### 5.3 Vercel (as a second project)
+### 5.4 Vercel (as a second project)
 
 | Setting | Value |
 |---|---|
@@ -277,7 +365,7 @@ without it would bake in the build server's `localhost`.)
 | Output Directory | `dist` |
 | Environment | `PUBLIC_CMS_URL=...` |
 
-### 5.4 Cloudflare Pages
+### 5.5 Cloudflare Pages
 
 | Setting | Value |
 |---|---|
@@ -285,7 +373,7 @@ without it would bake in the build server's `localhost`.)
 | Build output directory | `apps/web/dist` |
 | Environment | `PUBLIC_CMS_URL=...`, `NODE_VERSION=22.12.0` |
 
-### 5.5 Notes that apply to all three
+### 5.6 Notes that apply to all the hosted options
 
 - Astro is `output: 'static'` with **no adapter**. Do not add one, and do not add
   `export const prerender = false` anywhere — with no adapter it is silently
@@ -300,6 +388,11 @@ without it would bake in the build server's `localhost`.)
 ---
 
 ## 6. Wire up the deploy hook (do not skip this)
+
+⚠️ **As deployed today there is nothing to point this at** — the site is nginx on
+a VPS, which has no build hooks. See §5.2: every publish currently needs a manual
+rebuild. This section applies once the site moves to a host that offers one, or
+once a CI workflow provides an equivalent URL.
 
 The site is static. **A newly published post does not exist until the site is
 rebuilt.** The CMS handles that automatically — but only if you give it a URL.

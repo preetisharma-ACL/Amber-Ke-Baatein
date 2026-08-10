@@ -178,16 +178,21 @@ const cmsUrl = import.meta.env.PUBLIC_CMS_URL ?? 'http://localhost:3456';
       });
     }
 
-    box.querySelector<HTMLButtonElement>('[data-share="copy"]')?.addEventListener(
-      'click',
-      async () => {
-        try {
-          await navigator.clipboard.writeText(url);
-          say('लिंक कॉपी हो गया। / Link copied.');
-        } catch {
-          say(url);
-        }
-      },
-    );
+    const copyBtn = box.querySelector<HTMLButtonElement>('[data-share="copy"]');
+    copyBtn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        say('लिंक कॉपी हो गया। / Link copied.');
+
+        /* सन्देश नीचे है, नज़र बटन पर — इसलिए जवाब बटन पर भी दिखे.
+           The note appears below the row, but the reader is looking at the
+           button they just pressed; a brief green flash answers them there.
+           Purely decorative, so it is dropped again after a moment. */
+        copyBtn.classList.add('is-done');
+        window.setTimeout(() => copyBtn.classList.remove('is-done'), 1600);
+      } catch {
+        say(url);
+      }
+    });
   }
 </script>

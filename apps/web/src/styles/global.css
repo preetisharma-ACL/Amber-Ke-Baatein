@@ -315,8 +315,27 @@ body {
   margin-top: 3rem;
 }
 
+/* ── हर बटन अपना रंग ख़ुद लिए चलता है / each control carries its own colour ──
+   रंग `--tint` में रखा है, इसलिए hover, focus और दबाने की शैली एक ही बार लिखी
+   जाती है — हर बटन के लिए अलग-अलग नहीं.
+
+   इससे एक पुरानी ग़लती भी सुधरती है: `.act:hover:not(:disabled)` का वज़न (0,3,0)
+   `.act--wa:hover` (0,2,0) से ज़्यादा था, तो हर बटन hover पर terracotta ही होता
+   था और WhatsApp का हरा कभी दिखता ही नहीं था.
+
+   Putting the colour in --tint lets hover, focus and press be written once for
+   all four buttons. It also fixes a specificity bug: `:not(:disabled)` counts,
+   so `.act:hover:not(:disabled)` (0,3,0) outranked `.act--wa:hover` (0,2,0) —
+   every button hovered terracotta and the per-action colours never appeared. */
 .act {
-  background: rgba(236, 228, 214, 0.04);
+  --tint: var(--kite);
+  --tint-rgb: 224, 101, 76;
+
+  position: relative;
+  /* सपाट रंग की जगह हल्की ढलान — ऊपर से रोशनी पड़ने जैसा.
+     A flat wash reads as a rectangle of paint; a shallow top-lit gradient plus
+     a one-pixel inner highlight reads as a raised surface. */
+  background: linear-gradient(rgba(236, 228, 214, 0.07), rgba(236, 228, 214, 0.02));
   /* --rule (13% cream) एक पंक्ति खींचने के लिए ठीक है, बटन का किनारा बनाने के
      लिए नहीं — पिल दिखते ही नहीं थे. A 13% rule is right for a divider and too
      faint for a control's edge; these read as floating text before. */
@@ -331,20 +350,55 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(236, 228, 214, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.28);
+  /* `all` की जगह गिनी हुई properties — वरना browser हर बदलती चीज़ को animate
+     करने की कोशिश करता है. Naming them keeps the browser off properties that
+     were never meant to move, and lets transform carry its own easing. */
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 .act:hover:not(:disabled) {
-  border-color: var(--kite);
-  color: var(--kite);
-  background: rgba(224, 101, 76, 0.08);
+  color: var(--tint);
+  border-color: rgba(var(--tint-rgb), 0.8);
+  background: linear-gradient(
+    rgba(var(--tint-rgb), 0.18),
+    rgba(var(--tint-rgb), 0.07)
+  );
+  /* नीचे गिरती हुई हल्की आभा, उसी रंग की / a soft shadow in the button's own
+     colour rather than plain black — it reads as glow, not as weight. */
+  box-shadow:
+    inset 0 1px 0 rgba(236, 228, 214, 0.1),
+    0 6px 16px -8px rgba(var(--tint-rgb), 0.6);
+  transform: translateY(-2px);
+}
+
+/* दबाने पर वापस बैठ जाए / press pushes it back down and slightly in, so a tap
+   on a phone — where there is no hover — still feels answered. */
+.act:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.32);
+  transition-duration: 0.08s;
+}
+
+/* कीबोर्ड से आने वाले पाठक के लिए / keyboard focus gets its own visible ring,
+   in the button's colour, offset so it never sits on the border. */
+.act:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 3px;
 }
 
 .act--icon {
-  padding: 0.55rem;
+  padding: 0;
   line-height: 1;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
   justify-content: center;
 }
 
@@ -352,6 +406,36 @@ body {
   width: 1.15rem;
   height: 1.15rem;
   display: block;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.act--icon:hover:not(:disabled) svg {
+  transform: scale(1.12);
+}
+
+/* गोले के भीतर नीचे से उठती रोशनी / a glow rising from inside the bottom edge.
+   ::after content के बाद बनता है, इसलिए svg को z-index चाहिए वरना आभा चिह्न के
+   ऊपर आ जाती. The pseudo-element paints after the content, hence the svg's
+   z-index — otherwise the glow would wash over the icon itself. */
+.act--icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 118%,
+    rgba(var(--tint-rgb), 0.4),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.act--icon:hover:not(:disabled)::after {
+  opacity: 1;
 }
 
 /* ── हर काम का अपना रंग / a colour per action ────────────────────────────────
@@ -361,36 +445,40 @@ body {
    Colour does that work now — and each is checked against the page background:
    WhatsApp green 9.26:1, slate 7.97:1, cream 14.55:1, terracotta 5.37:1. */
 .act--wa {
+  --tint: #25d366;
+  --tint-rgb: 37, 211, 102;
   color: #25d366;
   border-color: rgba(37, 211, 102, 0.35);
 }
 
-.act--wa:hover {
-  color: #25d366;
-  border-color: #25d366;
-  background: rgba(37, 211, 102, 0.12);
-}
-
 .act--native {
+  --tint: var(--kite-2);
+  --tint-rgb: 143, 176, 188;
   color: var(--kite-2);
   border-color: rgba(143, 176, 188, 0.35);
 }
 
-.act--native:hover {
-  color: var(--kite-2);
-  border-color: var(--kite-2);
-  background: rgba(143, 176, 188, 0.12);
-}
-
 .act--copy {
+  --tint: var(--ink);
+  --tint-rgb: 236, 228, 214;
   color: var(--ink);
   border-color: rgba(236, 228, 214, 0.28);
 }
 
-.act--copy:hover {
-  color: var(--ink);
-  border-color: var(--ink);
-  background: rgba(236, 228, 214, 0.1);
+/* कॉपी होते ही थोड़ी देर हरा / a brief green confirmation on the copy button.
+   सन्देश नीचे लिखा तो आता है, पर नज़र बटन पर होती है — जवाब वहीं दिखना चाहिए.
+   The note below already says so, but the reader's eye is on the button they
+   just pressed, so the answer belongs there too. */
+.act--copy.is-done {
+  --tint: #25d366;
+  --tint-rgb: 37, 211, 102;
+  color: #25d366;
+  border-color: rgba(37, 211, 102, 0.7);
+  background: linear-gradient(rgba(37, 211, 102, 0.18), rgba(37, 211, 102, 0.07));
+}
+
+.act--copy.is-done svg {
+  transform: scale(1.12);
 }
 
 /* दिल हमेशा terracotta / the heart is always terracotta, liked or not — it is
@@ -403,15 +491,33 @@ body {
 
 /* पसंद दर्ज हो चुकी / already liked: filled, and no longer a button that acts. */
 .act--like.is-liked {
-  border-color: var(--kite);
+  border-color: rgba(224, 101, 76, 0.75);
   color: var(--kite);
-  background: rgba(224, 101, 76, 0.12);
+  background: linear-gradient(rgba(224, 101, 76, 0.2), rgba(224, 101, 76, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(236, 228, 214, 0.08),
+    0 4px 14px -8px rgba(224, 101, 76, 0.6);
   cursor: default;
   opacity: 1;
 }
 
+/* दिल एक बार उछलकर बैठे / the heart jumps once and settles, rather than simply
+   being a larger heart the next time the reader looks. */
 .act--like.is-liked .act__icon {
+  animation: heartPop 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
   transform: scale(1.15);
+}
+
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1.15);
+  }
 }
 
 .act__icon {
@@ -426,6 +532,21 @@ body {
 .act--like:disabled:not(.is-liked) {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ऊपर का `*` नियम transition और animation रोक देता है, पर hover का 2px उठना
+   एक झटके में हो जाता — इसलिए उसे यहाँ अलग से हटाया है.
+   The blanket rule above kills transitions, which would leave the hover lift
+   happening as an instant jump. Remove the movement itself, keep the colour. */
+@media (prefers-reduced-motion: reduce) {
+  .act:hover:not(:disabled),
+  .act:active:not(:disabled) {
+    transform: none;
+  }
+
+  .act--icon:hover:not(:disabled) svg {
+    transform: none;
+  }
 }
 
 .act__share {
