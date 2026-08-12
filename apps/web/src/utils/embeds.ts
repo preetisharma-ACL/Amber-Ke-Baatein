@@ -11,9 +11,34 @@
  * so this parses rather than pattern-matches loosely.
  */
 
+/**
+ * `posterUrl` — चलाने से पहले दिखने वाली तस्वीर / the still shown before play.
+ *
+ * YouTube हर वीडियो की तस्वीर एक तय पते पर देता है, इसलिए वह यहीं बन जाती है.
+ * Instagram नहीं देता — उसके लिए token वाली oEmbed API चाहिए, जो एक स्थिर साइट
+ * के build में नहीं चलानी — इसलिए वहाँ `undefined` रहता है और बुलाने वाला रचना
+ * की अपनी तस्वीर लगा लेता है.
+ *
+ * YouTube publishes a still at a predictable address, so it is derived here.
+ * Instagram does not — that needs its token-based oEmbed API, which a static
+ * build has no business calling — so it is `undefined` and the caller falls
+ * back to the post's own picture.
+ */
 export type VideoEmbed =
-  | { provider: 'youtube'; embedUrl: string; watchUrl: string; label: string }
-  | { provider: 'instagram'; embedUrl: string; watchUrl: string; label: string };
+  | {
+      provider: 'youtube';
+      embedUrl: string;
+      watchUrl: string;
+      label: string;
+      posterUrl: string;
+    }
+  | {
+      provider: 'instagram';
+      embedUrl: string;
+      watchUrl: string;
+      label: string;
+      posterUrl?: undefined;
+    };
 
 /** YouTube का 11-अक्षरी id / YouTube ids are exactly 11 URL-safe characters. */
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -87,6 +112,10 @@ export function parseVideoUrl(raw: string | null | undefined): VideoEmbed | null
       embedUrl: `https://www.youtube-nocookie.com/embed/${yt}?rel=0`,
       watchUrl: `https://www.youtube.com/watch?v=${yt}`,
       label: 'YouTube',
+      /* hqdefault हर वीडियो पर मिलती है; maxresdefault अक्सर 404 देती है और
+         टूटी तस्वीर छोड़ जाती है. `hqdefault` exists for every video, where
+         `maxresdefault` is often missing and leaves a broken image. */
+      posterUrl: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`,
     };
   }
 

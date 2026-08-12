@@ -2,84 +2,153 @@
 import { parseVideoUrl } from '../utils/embeds';
 
 /**
- * रचना के बग़ल वाली पट्टी / the media rail beside the poem.
+ * रचना के नीचे का पट्ट / the media panel under the poem.
  *
- * आवाज़ और वीडियो — दोनों वैकल्पिक। कुछ न हो तो यह पट्टी बनती ही नहीं और रचना
- * पूरी चौड़ाई ले लेती है।
+ * आवाज़ और वीडियो — दोनों वैकल्पिक। कुछ न हो तो यह बनता ही नहीं।
+ * Both optional. With neither, this renders nothing at all — an empty framed
+ * box under a poem reads as something broken.
  *
- * Both audio and video are optional. When a post has neither, this renders
- * nothing at all and the layout collapses to a single column — an empty
- * sidebar next to a poem would read as something broken.
+ * ── बग़ल की पट्टी से नीचे के पट्ट तक / from a side rail to a panel below ───────
+ * पहले यह रचना के बग़ल में खड़ी पट्टी थी और उसके लिए पूरा पन्ना दो स्तंभों में
+ * बँट जाता था. दो दिक़्क़तें थीं: कविता पढ़ते हुए बग़ल में चलता वीडियो ध्यान खींचता
+ * है, और सिर्फ़ मीडिया वाली रचना का पन्ना बाक़ी सब से अलग चौड़ा हो जाता था —
+ * एक ही साइट पर दो अलग-अलग नाप।
  *
- * ── पढ़ते हुए साथ चलती है / it follows you down the page ─────────────────────
- * The rail is sticky on wide screens: a reader who starts the recitation and
- * keeps scrolling should not lose the player halfway through the poem.
+ * This used to be a sticky rail beside the poem, which split the whole page
+ * into two columns. Two problems: a video playing beside a poem competes with
+ * it for attention, and only posts *with* media got the wide layout, so the
+ * site had two different measures depending on what a post happened to carry.
+ * Below the poem there is one measure, and the recitation is offered after the
+ * reading rather than during it.
  */
 interface Props {
   audioUrl?: string;
   audioTitle?: string;
   videoUrl?: string;
-  /** रचना का शीर्षक — सुनने वाले हिस्से के लिए / used as the audio caption. */
+  /** रचना का शीर्षक — वीडियो के `title` में जाता है / used in the iframe title. */
   title: string;
+  /**
+   * रचना की अपनी तस्वीर / the post's own picture, used as the still when the
+   * platform does not publish one (Instagram). See `poster` below.
+   */
+  coverUrl?: string | null;
 }
 
-const { audioUrl, audioTitle, videoUrl, title } = Astro.props;
+const { audioUrl, audioTitle, videoUrl, title, coverUrl = null } = Astro.props;
 
 const video = parseVideoUrl(videoUrl);
 const hasAnything = Boolean(audioUrl) || Boolean(video);
+
+/**
+ * ── चलाने से पहले तस्वीर, iframe नहीं / a still first, not an iframe ──────────
+ *
+ * पहले यहाँ सीधे iframe था. उसका मतलब है कि हर पाठक — जो वीडियो देखना ही नहीं
+ * चाहता, उसके लिए भी — Instagram या YouTube का पूरा player उतारता है: कई सौ
+ * किलोबाइट, और उस मंच से एक जुड़ाव, सिर्फ़ कविता पढ़ने के लिए खोले गए पन्ने पर.
+ * ऊपर से Instagram का embed अपनी ही सफ़ेद पट्टी और scrollbar लेकर आता है, जो इस
+ * गहरे पन्ने पर एक चिपकी हुई पर्ची जैसा दिखता है.
+ *
+ * This used to be a bare iframe, which made every reader — including everyone
+ * who never presses play — download a whole third-party player and hand that
+ * platform a connection, on a page they opened to read a poem. Instagram's
+ * embed also arrives with its own white chrome and scrollbar, which reads as a
+ * sticker pasted onto a dark page.
+ *
+ * इसलिए पहले एक तस्वीर और सुनहरा बटन; दबाने पर असली player वहीं आ जाता है.
+ * So: a still and a play button, and the real player arrives in its place on
+ * the first press.
+ *
+ * मंच की अपनी तस्वीर पहले — वही सच बताती है कि चलेगा क्या. Instagram वह नहीं
+ * देता, इसलिए वहाँ रचना की तस्वीर काम आती है.
+ * The platform's own still wins, because it is the honest answer to "what will
+ * play"; Instagram publishes none, so the post's picture stands in.
+ */
+const poster = video?.posterUrl ?? coverUrl ?? null;
 ---
 
 {
   hasAnything && (
-    <aside class="media-rail" aria-label="इस रचना के साथ / with this post">
+    <aside class="media-panel" aria-label="इस रचना के साथ / with this post" data-reveal>
       {audioUrl && (
-        <section class="media-card">
-          <h3 class="media-card__head">
-            <span class="media-card__icon" aria-hidden="true">
-              ♪
-            </span>
-            सुनिए / Listen
-          </h3>
-          <p class="media-card__sub">{audioTitle || title}</p>
-          {/*
-            ब्राउज़र का अपना player — हल्का और हर जगह चलता है.
-            The native player: no JavaScript, works on every phone, and honours
-            the reader's own volume and playback-speed preferences.
-          */}
-          <audio class="media-card__audio" controls preload="none" src={audioUrl}>
-            आपका ब्राउज़र आवाज़ नहीं चला सकता।
-          </audio>
+        <section class="media-item">
+          <div class="media-item__text">
+            <p class="media-item__eyebrow">
+              <span class="media-item__icon" aria-hidden="true">
+                ♪
+              </span>
+              सुनिए / Listen
+            </p>
+            <h3 class="media-item__title">{audioTitle || 'इन्हीं पंक्तियों का पाठ'}</h3>
+            <p class="media-item__note">जो लिखा, वो कहा भी — अपनी ही आवाज़ में।</p>
+            {/*
+              ब्राउज़र का अपना player — हल्का और हर जगह चलता है.
+              The native player: no JavaScript, works on every phone, and honours
+              the reader's own volume and playback-speed preferences.
+            */}
+            <audio class="media-item__audio" controls preload="none" src={audioUrl}>
+              आपका ब्राउज़र आवाज़ नहीं चला सकता।
+            </audio>
+          </div>
         </section>
       )}
 
       {video && (
-        <section class="media-card">
-          <h3 class="media-card__head">
-            <span class="media-card__icon" aria-hidden="true">
-              ▶
-            </span>
-            देखिए / Watch
-          </h3>
-          <p class="media-card__sub">{video.label}</p>
+        <section class="media-item media-item--split">
+          <div class="media-item__text">
+            <p class="media-item__eyebrow">
+              <span class="media-item__icon" aria-hidden="true">
+                ▶
+              </span>
+              देखिए / Watch
+            </p>
+            <h3 class="media-item__title">इन्हीं पंक्तियों का चलचित्र</h3>
+            <p class="media-item__note">यहीं चलाइए, या {video.label} पर पूरा खोलिए।</p>
+
+            <a
+              class="media-item__btn"
+              href={video.watchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{video.label} पर खोलें</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
 
           {/*
             दोनों का अनुपात अलग है / the two platforms need different shapes:
-            a reel is vertical (9:16), a YouTube video is landscape (16:9).
+            a reel is vertical (9:16), a YouTube video landscape (16:9).
             Forcing one ratio on both would letterbox one of them badly.
-          */}
-          <div class:list={['media-card__frame', `is-${video.provider}`]}>
-            <iframe
-              src={video.embedUrl}
-              title={`${video.label} — ${title}`}
-              loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-              referrerpolicy="strict-origin-when-cross-origin"
-            />
-          </div>
 
-          <a class="media-card__link" href={video.watchUrl} target="_blank" rel="noopener noreferrer">
-            {video.label} पर खोलिए ↗
+            ── यह लिंक है, बटन नहीं / this is a link, not a button ──────────────
+            JavaScript न चले तो यह मंच पर खुल जाता है — यानी वीडियो तब भी देखा
+            जा सकता है. script इसे वहीं चलने वाले player में बदल देती है.
+            Without JavaScript it opens on the platform, so the video is still
+            watchable; the script upgrades it into an in-place player. Written
+            as a <button> it would simply do nothing when the script fails.
+          */}
+          <a
+            class:list={['media-item__frame', `is-${video.provider}`]}
+            href={video.watchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-embed={video.embedUrl}
+            data-label={`${video.label} — ${title}`}
+            aria-label={`${title} — ${video.label} पर चलाइए`}
+          >
+            {poster ? (
+              <img class="media-item__poster" src={poster} alt="" loading="lazy" decoding="async" />
+            ) : (
+              /* तस्वीर न मिले तो सादा रंग / a plain wash when there is no still,
+                 so the play button always has something to sit on. */
+              <span class="media-item__poster media-item__poster--blank" aria-hidden="true" />
+            )}
+
+            <span class="media-item__play" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M9 6.2v11.6a.8.8 0 0 0 1.24.66l8.5-5.8a.8.8 0 0 0 0-1.32l-8.5-5.8A.8.8 0 0 0 9 6.2Z" />
+              </svg>
+            </span>
           </a>
         </section>
       )}
@@ -88,86 +157,234 @@ const hasAnything = Boolean(audioUrl) || Boolean(video);
 }
 
 <style>
-  /**
-   * पट्टी पढ़ते हुए साथ चलती है / the rail follows the reader down the page.
-   * Only on wide screens: when the layout stacks, sticky would pin a video
-   * over the poem the reader is trying to read.
-   */
-  .media-rail {
+  .media-panel {
     display: flex;
     flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 3.5rem;
+  }
+
+  /**
+   * पट्ट का तख़्ता / the panel's surface.
+   * वही काँच और वही किनारा जो रचना के नीचे वाले तख़्ते का है, ताकि पन्ने पर उठी
+   * हुई हर चीज़ एक ही चीज़ की बनी लगे.
+   * The same wash and hairline as the panel under the poem, so everything
+   * raised off this page reads as one material.
+   */
+  .media-item {
+    padding: 1.6rem 1.7rem;
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: linear-gradient(160deg, var(--glass), rgba(236, 228, 214, 0)), var(--paper-2);
+    box-shadow: 0 24px 50px -36px rgba(0, 0, 0, 0.95);
+    transition:
+      border-color 0.5s ease,
+      box-shadow 0.5s ease;
+  }
+
+  .media-item:hover {
+    border-color: rgba(var(--amber-rgb), 0.28);
+  }
+
+  /**
+   * लिखावट बाईं ओर, चलचित्र दाईं ओर / words left, picture right.
+   * `auto` इसलिए कि चौड़ाई frame ख़ुद तय करे — रील और YouTube की चौड़ाई अलग है,
+   * और एक तय अंश (जैसे 1fr 1fr) दोनों में से एक को हमेशा ग़लत नाप देता.
+   * The frame sizes itself because a reel and a YouTube video want different
+   * widths; a fixed fraction would be wrong for one of them every time.
+   */
+  .media-item--split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 1.6rem;
+    align-items: center;
   }
 
-  @media (min-width: 68.0625rem) {
-    .media-rail {
-      position: sticky;
-      top: 5rem;
-    }
+  .media-item__text {
+    min-width: 0;
   }
 
-  .media-card {
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    background: var(--paper-2);
-    padding: 1.1rem 1.15rem 1.25rem;
-  }
-
-  .media-card__head {
+  .media-item__eyebrow {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 0.2rem;
-    font-size: 0.82rem;
-    font-weight: 400;
-    letter-spacing: 0.16em;
+    gap: 0.55rem;
+    margin: 0 0 0.55rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: var(--kite-2);
+    color: var(--amber);
   }
 
-  .media-card__icon {
-    color: var(--kite);
-    font-size: 0.95rem;
+  /* सिर्फ़ एक छोटा चिह्न / just a mark, in line with the words — it says
+     "listen" or "watch" before either word is read. */
+  .media-item__icon {
+    font-size: 0.7rem;
+    letter-spacing: 0;
   }
 
-  .media-card__sub {
-    margin: 0 0 0.9rem;
-    font-size: 0.9rem;
-    line-height: 1.6;
+  .media-item__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.32rem;
+    /* यह पट्ट का शीर्षक है, रचना का नहीं — इसे भारी होना चाहिए, वरना नीचे की
+       पंक्ति से अलग नहीं दिखता. This heads a panel rather than a poem; at the
+       body weight it did not separate from the sentence under it. */
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .media-item__note {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.75;
     color: var(--ink-soft);
   }
 
-  .media-card__audio {
+  .media-item__audio {
     width: 100%;
     display: block;
+    margin-top: 1.1rem;
     /* गहरे पन्ने पर ब्राउज़र का हल्का player भद्दा लगता है / the native player
        ships light-themed; this keeps it from glaring on a near-black page. */
     filter: invert(0.88) hue-rotate(180deg);
-    border-radius: 6px;
-  }
-
-  /**
-   * हर मंच का अपना अनुपात / each platform keeps its own shape.
-   * A reel is shot vertical and a YouTube video landscape; forcing one ratio on
-   * both would letterbox one of them into a thin strip.
-   */
-  .media-card__frame {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
     border-radius: 8px;
-    background: #000;
   }
 
-  .media-card__frame.is-youtube {
+  /* चौकोर बटन, गोल नहीं / a rectangle, not a pill. साइट के बाक़ी गोल बटन सूची और
+     पन्ने के नीचे चलते हैं; यह एक तख़्ते के भीतर बैठा हुआ है, जहाँ सीधा किनारा
+     तख़्ते के अपने किनारे के साथ चलता है.
+     The site's pills belong to lists and page footers. This one sits inside a
+     panel, where a straight edge agrees with the panel's own. */
+  .media-item__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.35rem;
+    border: 1px solid rgba(236, 228, 214, 0.32);
+    border-radius: 3px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    text-decoration: none;
+    background: transparent;
+    transition:
+      background 0.35s ease,
+      border-color 0.35s ease,
+      color 0.35s ease,
+      gap 0.35s ease;
+  }
+
+  .media-item__btn:hover {
+    background: rgba(var(--amber-rgb), 0.1);
+    border-color: rgba(var(--amber-rgb), 0.7);
+    color: var(--amber);
+    gap: 0.8rem;
+  }
+
+  .media-item__btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .media-item__frame {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #0b0a09;
+    box-shadow: 0 0 0 1px rgba(236, 228, 214, 0.1);
+    transition: box-shadow 0.45s ease;
+  }
+
+  .media-item__frame:hover,
+  .media-item__frame:focus-visible {
+    box-shadow: 0 0 0 1px rgba(var(--amber-rgb), 0.5);
+  }
+
+  .media-item__frame:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .media-item__frame.is-youtube {
+    width: 21rem;
     aspect-ratio: 16 / 9;
   }
 
-  .media-card__frame.is-instagram {
+  .media-item__frame.is-instagram {
+    width: 14rem;
     aspect-ratio: 9 / 16;
   }
 
-  .media-card__frame :global(iframe) {
+  .media-item__poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* चेहरा बीच से ऊपर होता है / a face sits above the middle of a frame. */
+    object-position: 50% 38%;
+    transition:
+      transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1),
+      filter 0.45s ease;
+    /* चलाने से पहले तस्वीर ज़रा दबी रहे, ताकि सुनहरा बटन उभरकर दिखे / held back a
+       little so the gilt button is the brightest thing in the frame. */
+    filter: brightness(0.72);
+  }
+
+  .media-item__poster--blank {
+    background: radial-gradient(120% 90% at 50% 20%, rgba(var(--amber-rgb), 0.16), #0b0a09 70%);
+    filter: none;
+  }
+
+  .media-item__frame:hover .media-item__poster {
+    transform: scale(1.05);
+    filter: brightness(0.85);
+  }
+
+  /**
+   * चलाने का सुनहरा गोला / the gilt play button.
+   * बीच में, तस्वीर के ऊपर. यही बताता है कि यह तस्वीर नहीं, वीडियो है — बिना
+   * इसके पाठक को पता ही नहीं चलता कि यहाँ कुछ चलता भी है.
+   * Centred over the still. It is the only thing saying this is a video and not
+   * a photograph; without it there is nothing to press.
+   */
+  .media-item__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 3.6rem;
+    height: 3.6rem;
+    margin: -1.8rem 0 0 -1.8rem;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--amber-rgb), 0.85);
+    background: rgba(22, 20, 18, 0.42);
+    backdrop-filter: blur(3px);
+    color: var(--amber);
+    transition:
+      transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1),
+      background 0.45s ease;
+  }
+
+  .media-item__play svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    /* त्रिभुज का दृश्य केंद्र उसके ज्यामितीय केंद्र से बाईं ओर होता है / a
+       triangle's optical centre sits left of its geometric one. */
+    margin-left: 0.15rem;
+  }
+
+  .media-item__frame:hover .media-item__play,
+  .media-item__frame:focus-visible .media-item__play {
+    transform: scale(1.1);
+    background: rgba(var(--amber-rgb), 0.2);
+  }
+
+  /* चलने के बाद असली player / once playing, the real player fills the frame. */
+  .media-item__frame :global(iframe) {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -175,18 +392,91 @@ const hasAnything = Boolean(audioUrl) || Boolean(video);
     border: 0;
   }
 
-  .media-card__link {
-    display: inline-block;
-    margin-top: 0.8rem;
-    font-size: 0.84rem;
-    color: var(--kite);
-    text-decoration: none;
-    transition: opacity 0.3s ease;
-  }
+  /**
+   * छोटे परदे पर एक के नीचे एक / stacked on a narrow screen.
+   * 34rem इसलिए कि उससे नीचे बग़ल में रखा frame या लिखावट को कुचल देता है या
+   * ख़ुद इतना छोटा हो जाता है कि उसमें कुछ दिखता ही नहीं.
+   * Below this the side-by-side frame either squeezes the words or shrinks to
+   * the point where nothing in it is visible.
+   */
+  @media (max-width: 34rem) {
+    .media-item {
+      padding: 1.35rem 1.15rem 1.45rem;
+    }
 
-  .media-card__link:hover {
-    opacity: 0.75;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    .media-item--split {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+    }
+
+    .media-item__frame.is-youtube,
+    .media-item__frame.is-instagram {
+      width: 100%;
+    }
+
+    /* रील पूरी चौड़ाई में बहुत लंबी हो जाती / a full-width reel would be taller
+       than the phone it is on, so it keeps its shape and stays centred. */
+    .media-item__frame.is-instagram {
+      max-width: 15rem;
+      margin: 0 auto;
+    }
   }
 </style>
+
+<script>
+  /**
+   * दबाने पर ही player उतरता है / the player is fetched on the first press.
+   *
+   * ── यह क्यों ज़रूरी है / why this matters ────────────────────────────────────
+   * पहले iframe सीधे markup में था, यानी हर पाठक — जिन्होंने कभी play नहीं दबाया,
+   * उन्होंने भी — Instagram या YouTube का पूरा player उतारा और उस मंच से जुड़ाव
+   * बनाया, सिर्फ़ एक कविता पढ़ने के लिए. अब वह तभी होता है जब पाठक ख़ुद कहे.
+   *
+   * The iframe used to ship in the markup, so every reader — including everyone
+   * who never pressed play — downloaded a third-party player and opened a
+   * connection to that platform just to read a poem. Now that happens only when
+   * the reader asks for it.
+   *
+   * ── बिना JavaScript भी काम करता है / it works without JavaScript ────────────
+   * markup में यह एक असली लिंक है जो मंच पर खुलता है. यहाँ हम सिर्फ़ उसे रोककर
+   * उसी जगह player रख देते हैं. script न चले तो वीडियो फिर भी देखा जा सकता है —
+   * बस दूसरे पन्ने पर.
+   * The markup is a real link to the platform; this only intercepts it. If the
+   * script never runs the video is still watchable, just elsewhere.
+   */
+  const frames = document.querySelectorAll<HTMLAnchorElement>('[data-embed]');
+
+  frames.forEach((frame) => {
+    frame.addEventListener('click', (event) => {
+      /* नई खिड़की में खोलने वाले पाठक को रोकिए मत / leave the reader's own
+         intent alone: ctrl/cmd/middle-click means "open it over there". */
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.button !== 0) return;
+
+      const src = frame.dataset.embed;
+      if (!src) return;
+
+      event.preventDefault();
+
+      const iframe = document.createElement('iframe');
+      /* YouTube पर दबाते ही चल पड़े / YouTube can start on the same press.
+         Instagram का embed autoplay नहीं मानता, इसलिए वहाँ यह जोड़ा नहीं जाता —
+         एक ऐसा parameter भेजना जिसे वह अनदेखा करता है, सिर्फ़ भ्रम पैदा करता. */
+      iframe.src = src.includes('youtube') ? `${src}&autoplay=1` : src;
+      iframe.title = frame.dataset.label ?? '';
+      iframe.allow =
+        'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+
+      frame.replaceChildren(iframe);
+      /* अब यह लिंक नहीं रहा / it is no longer a link: leaving the href in place
+         would send a second click to the platform mid-playback. */
+      frame.removeAttribute('href');
+      frame.removeAttribute('target');
+      frame.removeAttribute('aria-label');
+      frame.removeAttribute('data-embed');
+    });
+  });
+</script>

@@ -16,6 +16,55 @@
   --rule: rgba(236, 228, 214, 0.13);
   --maxw: 40rem;
   --nav-h: 3.6rem;
+
+  /**
+   * ── सुनहरा / the gilt ────────────────────────────────────────────────────
+   * तीसरा रंग रचना वाले पन्ने के लिए जोड़ा गया. पहले वहाँ सब कुछ terracotta था —
+   * शीर्षक की लकीर, कविता का किनारा, दिल का बटन, हर लिंक — इसलिए कोई भी चीज़
+   * बाक़ी से अलग नहीं दिखती थी. सुनहरा वहीं लगता है जहाँ "यह ख़ास है" कहना है:
+   * श्रेणी का टिकट, कविता की लौ, आगे-पीछे के दरवाज़े.
+   *
+   * A third accent, added for the post page. Everything there was terracotta —
+   * the title rule, the verse edge, the like button, every link — so nothing
+   * could stand out from anything else. The gilt marks what is meant to be
+   * noticed, and it is the site's own name: अम्बर.
+   *
+   * नाप लिया गया / measured on --paper (#161412): 8.9:1.
+   *
+   * `--*-rgb` इसलिए हैं कि rgba() में अस्पष्टता बदली जा सके — CSS में किसी रंग
+   * से सीधे rgba() नहीं बनाया जा सकता (color-mix() अभी हर जगह भरोसे लायक़ नहीं).
+   * The `-rgb` twins exist because rgba() cannot take a colour variable, and
+   * colour-mix() is not yet safe on every browser this site sees.
+   */
+  --amber: #e6a94a;
+  --amber-rgb: 230, 169, 74;
+  --kite-rgb: 224, 101, 76;
+
+  /**
+   * कविता की अपनी स्याही / the ink the verse is set in.
+   *
+   * गद्य `--ink` (तटस्थ क्रीम) में है. कविता उसी रंग में थी, इसलिए पन्ने पर वह
+   * सिर्फ़ बीच में सजी हुई लाइनें थीं — रंग से यह पता नहीं चलता था कि यहाँ आवाज़
+   * बदल गई है. यह हल्का सुनहरा-हाथीदाँत रंग गद्य से गरम है, पर गीत की पंक्तियों
+   * (`--amber`) जितना सुनहरा नहीं. तीन दर्जे बनते हैं और तीनों अलग पढ़े जाते हैं:
+   *
+   *   गद्य      --ink        #ece4d6   तटस्थ क्रीम
+   *   कविता     --verse-ink  #f0dfbe   हल्का सुनहरा
+   *   गीत       --amber      #e6a94a   पूरा सुनहरा
+   *
+   * The verse was set in the same neutral cream as the prose, so on the page it
+   * was merely centred lines — nothing in the colour said the voice had
+   * changed. This is warmer than the prose but well short of the gilt the
+   * quoted lyrics carry, which gives three legible registers instead of two.
+   *
+   * नाप लिया गया / measured on --paper: 14:1.
+   */
+  --verse-ink: #f0dfbe;
+
+  /* काँच जैसे तख़्ते / the raised panels: a wash and a hairline, not a fill.
+     `--rule` (13%) एक लकीर के लिए ठीक है पर तख़्ते का किनारा उससे शांत चाहिए. */
+  --glass: rgba(236, 228, 214, 0.045);
+  --glass-line: rgba(236, 228, 214, 0.1);
 }
 
 * {
@@ -143,37 +192,141 @@ body {
 /* =========================================================
    रचना का शरीर / post body — styles Markdown output
    ========================================================= */
+/* कविता-खंडों की गिनती यहीं से शुरू होती है / the verse counter starts here, so
+   every post numbers its blocks from one. */
+.post-body {
+  counter-reset: verse;
+}
+
 .post-body p {
   margin-bottom: 1.6rem;
 }
 
-/* उद्धृत पंक्तियाँ / quoted lyric lines */
+/**
+ * ── पहला अक्षर बड़ा / the drop cap ──────────────────────────────────────────
+ * पहली पंक्ति भी ज़रा बड़ी, ताकि रचना की शुरुआत आँख को अपने-आप मिल जाए.
+ *
+ * ⚠️ देवनागरी में यह जोखिम भरा है / this is a calculated risk in Devanagari.
+ * `::first-letter` एक "अक्षर" उठाता है — browser उसे grapheme cluster मानते हैं,
+ * इसलिए "ए" या "र" जैसे अक्षर ठीक उठते हैं और मात्राएँ साथ रहती हैं. पर संयुक्ताक्षर
+ * ("क्यों") पर भरोसा हर browser पर एक-सा नहीं है. इसीलिए यह float भर है, कोई
+ * `initial-letter` नहीं: सबसे बुरी हालत में अक्षर बड़ा दिखेगा, पंक्ति टूटेगी नहीं.
+ *
+ * Browsers segment `::first-letter` by grapheme cluster, so a vowel or a plain
+ * consonant takes its matras with it. Conjuncts are less certain across
+ * engines. It is deliberately a plain float and not `initial-letter`: in the
+ * worst case the letter is merely large, and the paragraph still reads.
+ */
+.post-body > p:first-of-type {
+  font-size: 1.14rem;
+  color: #f4ecdf;
+}
+
+.post-body > p:first-of-type::first-letter {
+  float: left;
+  /* लिपि वही रहे / the Devanagari face is inherited on purpose — a serif Latin
+     display font here would substitute a fallback and look like another site. */
+  font-size: 3.2rem;
+  /* 1 रखने पर शिरोरेखा के ऊपर की मात्रा कट जाती है / a line-height of 1 clips
+     anything sitting above the shirorekha. */
+  line-height: 1.05;
+  color: var(--amber);
+  padding: 0.1rem 0.55rem 0 0;
+}
+
+/**
+ * उद्धृत पंक्तियाँ / quoted lyric lines.
+ * ये गाई हुई पंक्तियाँ हैं — गद्य के बीच सुनहरी और बीचोंबीच, ताकि पढ़ते हुए यह
+ * साफ़ रहे कि यह लेखक की आवाज़ नहीं, किसी और की है.
+ * These are sung lines. Gilt and centred within the prose, so it stays obvious
+ * that the voice has changed hands.
+ */
 .post-body p.lyric {
   text-align: center;
   font-style: italic;
-  color: var(--kite-2);
+  color: var(--amber);
   line-height: 2.3;
-  margin: 2.6rem 0;
-  font-size: 1.05rem;
+  margin: 2.8rem auto;
+  max-width: 34rem;
+  font-size: 1.06rem;
+  text-shadow: 0 0 30px rgba(230, 169, 74, 0.22);
+}
+
+/* लगातार आती पंक्तियाँ एक साथ रहें / consecutive lyric lines are one quotation,
+   not several — full paragraph spacing between them broke the song apart. */
+.post-body p.lyric + p.lyric {
+  margin-top: -2rem;
 }
 
 .post-body p.center {
   text-align: center;
 }
 
-/* कविता का ब्लॉक / poem block */
+/**
+ * ── कविता का ब्लॉक / the poem block ─────────────────────────────────────────
+ *
+ * ── डिब्बा क्यों हटाया / why this is no longer a card ────────────────────────
+ * पहले यह किनारेदार, रंगी हुई पेटी थी. गद्य के बीच एक-दो बार वह अच्छी लगती है,
+ * पर जिन रचनाओं में तीन-चार कविता-खंड हैं, वहाँ पन्ना डिब्बों की सूची बन जाता
+ * है और कविता किसी उद्धरण-पेटी जैसी दिखने लगती है — जबकि इस साइट पर कविता ही
+ * मुख्य चीज़ है, कोई अलंकार नहीं.
+ *
+ * This used to be a bordered, tinted box. That reads well once or twice, but a
+ * post carrying three or four verse blocks turns into a stack of containers,
+ * and the poem starts to look like a pull-quote — an aside — when on this site
+ * the poem is the point.
+ *
+ * ऊपर-नीचे दो पतली लकीरें, बीच में केन्द्र में सजी पंक्तियाँ, और ऊपर एक सुनहरा
+ * नाम. यही किताबों का तरीक़ा है और सबसे कम शोर करता है.
+ * Two hairlines, centred lines between them, and a gilt label above: how a
+ * printed book does it, and the quietest thing on the page.
+ */
 .post-body .verse {
-  margin: 3rem 0;
-  padding: 2rem 1.9rem;
+  margin: 3.4rem 0;
+  padding: 2.3rem 0 2.4rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  text-align: center;
   line-height: 2.35;
-  font-size: 1.12rem;
-  background: linear-gradient(135deg, rgba(224, 101, 76, 0.1), rgba(143, 176, 188, 0.06));
-  border-left: 2px solid var(--kite);
-  border-radius: 0 5px 5px 0;
+  font-size: 1.15rem;
+  /* गद्य से अलग स्याही / a different ink from the prose around it — see
+     `--verse-ink` for the three registers this page uses. */
+  color: var(--verse-ink);
+  counter-increment: verse;
+}
+
+/**
+ * ── खंड की गिनती / numbering the blocks ─────────────────────────────────────
+ * "पंक्तियाँ · एक" — गिनती CSS ख़ुद करता है, इसलिए लेखक को कुछ नहीं भरना पड़ता
+ * और खंड आगे-पीछे करने पर नंबर अपने-आप ठीक हो जाते हैं.
+ *
+ * The counter is CSS's, so the author never types a number and reordering the
+ * blocks renumbers them by itself.
+ *
+ * `@counter-style` न चले तो १, २, ३ आते हैं — जो पढ़ने में पूरी तरह ठीक है.
+ * Where `@counter-style` is unsupported the fallback is devanagari digits,
+ * which read perfectly well; nothing breaks, the words just become numerals.
+ */
+@counter-style verse-words {
+  system: fixed;
+  symbols: 'एक' 'दो' 'तीन' 'चार' 'पाँच' 'छह' 'सात' 'आठ' 'नौ' 'दस';
+  suffix: '';
+  fallback: devanagari;
+}
+
+.post-body .verse::before {
+  content: 'पंक्तियाँ · ' counter(verse, verse-words);
+  display: block;
+  margin-bottom: 1.7rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  color: var(--amber);
+  opacity: 0.85;
 }
 
 .post-body .verse .stanza {
-  margin-bottom: 1.7rem;
+  margin-bottom: 1.9rem;
 }
 
 .post-body .verse .stanza:last-child {
@@ -191,6 +344,20 @@ body {
 
 .post-body h2 {
   font-size: 1.45rem;
+}
+
+/* शीर्षक के आगे एक छोटा सुनहरा चिह्न / a small gilt mark before the heading.
+   हाशिये में लटकाया नहीं गया — पन्ने की चौड़ाई परदे के साथ बदलती है, इसलिए बाहर
+   लटका चिह्न कभी-कभी कट जाता. Kept inline rather than hung in the margin: the
+   column's width follows the viewport, so an outdented mark is clipped at some
+   sizes and not others. */
+.post-body h2::before {
+  content: '✦';
+  margin-inline-end: 0.55rem;
+  font-size: 0.62rem;
+  vertical-align: 0.35em;
+  color: var(--amber);
+  opacity: 0.75;
 }
 
 .post-body h3 {
@@ -227,8 +394,33 @@ body {
   color: inherit;
 }
 
+/* रचना के भीतर के लिंक / links inside a post. लकीर हमेशा रहती है (पहचान के लिए
+   रंग अकेला काफ़ी नहीं), पर छूने पर वह बाएँ से दाएँ भर जाती है.
+   The underline is always present — colour alone is not an accessible way to
+   mark a link — and fills in from the left on hover instead of appearing. */
 .post-body a {
   color: var(--kite);
+  text-decoration: none;
+  background-image: linear-gradient(var(--amber), var(--amber)),
+    linear-gradient(rgba(224, 101, 76, 0.45), rgba(224, 101, 76, 0.45));
+  background-size:
+    0% 1px,
+    100% 1px;
+  background-position:
+    0 100%,
+    0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 0.1em;
+  transition:
+    background-size 0.4s cubic-bezier(0.2, 0.8, 0.3, 1),
+    color 0.3s ease;
+}
+
+.post-body a:hover {
+  color: var(--amber);
+  background-size:
+    100% 1px,
+    100% 1px;
 }
 
 .post-body ul,
@@ -266,6 +458,35 @@ body {
   }
 }
 
+/* =========================================================
+   पढ़ते-पढ़ते उभरना / reveal on scroll
+   ---------------------------------------------------------
+   `.reveal-ready` सिर्फ़ तब लगती है जब IntersectionObserver मौजूद हो और पाठक ने
+   गति बंद न कर रखी हो — PostLayout के <head> वाली छोटी script देखिए. यानी छिपाने
+   का काम तभी होता है जब दिखाने वाला ज़िम्मेदार मौजूद हो. यह नियम उलटा लिखना —
+   पहले छिपाकर फिर JavaScript से दिखाना — का मतलब होता कि script न चले तो रचना
+   कभी दिखती ही नहीं.
+
+   The class is only added when there is an observer to undo it and the reader
+   has not asked for less motion (see the head script in PostLayout). Written
+   the other way round — hidden by default, shown by JS — a script that never
+   loads would leave the poem permanently invisible.
+   ========================================================= */
+.reveal-ready .post-body > *,
+.reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.85s cubic-bezier(0.22, 0.8, 0.28, 1),
+    transform 0.85s cubic-bezier(0.22, 0.8, 0.28, 1);
+}
+
+.reveal-ready .post-body > *.is-in,
+.reveal-ready [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
 /* ---------- छोटी स्क्रीन / small screens ---------- */
 @media (max-width: 600px) {
   body {
@@ -273,8 +494,16 @@ body {
     line-height: 2;
   }
   .post-body .verse {
-    padding: 1.5rem 1.2rem;
-    font-size: 1.06rem;
+    margin: 2.8rem 0;
+    padding: 1.9rem 0 2rem;
+    font-size: 1.08rem;
+    line-height: 2.25;
+  }
+
+  /* फ़ोन पर बड़ा अक्षर पंक्ति की आधी चौड़ाई खा जाता है / on a phone a 3.2rem drop
+     cap eats half the line it is supposed to start. */
+  .post-body > p:first-of-type::first-letter {
+    font-size: 2.7rem;
   }
 }
 
@@ -282,6 +511,16 @@ body {
   * {
     animation: none !important;
     transition: none !important;
+  }
+
+  /* ऊपर का नियम transition हटा देता है, इसलिए अगर किसी कारण `.reveal-ready` लग
+     चुकी हो (पाठक ने पन्ना खुलने के बाद गति बंद की) तो सब कुछ छिपा ही रह जाता.
+     The blanket rule removes the transition, so anything already marked hidden
+     would stay hidden — this puts it back on the page. */
+  .reveal-ready .post-body > *,
+  .reveal-ready [data-reveal] {
+    opacity: 1;
+    transform: none;
   }
 }
 

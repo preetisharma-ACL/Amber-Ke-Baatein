@@ -110,11 +110,47 @@ export const Posts: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      /**
+       * ऊपर पूरी चौड़ाई में दिखने वाली तस्वीर / the wide banner behind the title.
+       *
+       * ── यह `coverImage` से अलग क्यों है / why this is not the cover ──────────
+       * दोनों का आकार अलग है। cover चौकोर या खड़ी होती है और पढ़ने की चौड़ाई में
+       * बैठती है; banner बहुत चौड़ी (लगभग 4:1) होती है और उसके ऊपर शीर्षक छपता
+       * है। एक ही तस्वीर से दोनों काम लेने का मतलब है कि खड़ी तस्वीर का चेहरा
+       * banner में कट जाए — और कटती हमेशा वही चीज़ है जो सबसे ज़रूरी थी।
+       *
+       * A cover is portrait or square and sits at the reading measure; a banner
+       * is ~4:1 and carries the title over it. Using one image for both means
+       * the browser crops a portrait into a letterbox, and what it crops is
+       * invariably the face.
+       *
+       * खाली छोड़ने पर साइट की अपनी बनी-बनाई तस्वीर लगती है
+       * (`apps/web/src/assets/poetry-banner.png`). cover यहाँ जान-बूझकर नहीं आती
+       * — देखिए `banner` का नोट `apps/web/src/utils/posts.ts` में.
+       *
+       * Left empty, the site's own banner is used. The cover deliberately does
+       * not stand in — see the note on `banner` in apps/web/src/utils/posts.ts.
+       */
+      name: 'bannerImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'ऊपर की चौड़ी तस्वीर / Banner (वैकल्पिक)',
+      admin: {
+        position: 'sidebar',
+        description:
+          'रचना के पन्ने पर सबसे ऊपर, पूरी चौड़ाई में दिखती है। बहुत चौड़ी तस्वीर चुनिए — कम से कम 1900px चौड़ी। इसके ऊपर शीर्षक छपता है, इसलिए साइट इसे गहरा कर देती है और ऊपर-नीचे से थोड़ी कट सकती है, तो ज़रूरी हिस्सा बीच में रखिए। खाली छोड़ेंगे तो साइट की अपनी बनी-बनाई तस्वीर लग जाएगी — कुछ टूटेगा नहीं।',
+      },
+    },
+    {
       name: 'coverImage',
       type: 'upload',
       relationTo: 'media',
       label: 'मुख्य तस्वीर / Cover image (वैकल्पिक)',
-      admin: { position: 'sidebar' },
+      admin: {
+        position: 'sidebar',
+        description:
+          'रचना के साथ लगी तस्वीर। वीडियो चलाने से पहले जो तस्वीर दिखती है, वह भी यही है (जब मंच अपनी तस्वीर न दे, जैसे Instagram)।',
+      },
     },
     {
       name: 'audio',

@@ -1,6 +1,7 @@
 ---
 import PostLayout from '../../layouts/PostLayout.astro';
-import { getPosts, type Post } from '../../utils/posts';
+import { getPosts, type Post, type PostLink } from '../../utils/posts';
+import { readingMinutes } from '../../utils/reading';
 
 /**
  * एक-एक रचना का अपना पन्ना / one real page per poem.
@@ -31,20 +32,64 @@ import { getPosts, type Post } from '../../utils/posts';
  */
 export async function getStaticPaths() {
   const posts = await getPosts();
+
+  /**
+   * हर रचना का पढ़ने-समय एक ही बार / each post's reading time, computed once.
+   *
+   * यह नीचे वाली सूची में हर पंक्ति के आगे छपता है, यानी एक ही रचना का हिसाब कई
+   * पन्नों पर लगता। एक बार निकालकर रख लेना पूरे build में n गुना काम बचाता है —
+   * हर बार पूरा HTML छानना पड़ता है.
+   *
+   * The related list prints this beside every line, so the same post's estimate
+   * would be recomputed on several pages. Each computation strips a whole
+   * post's HTML, so caching it turns n² work into n.
+   */
+  const minutes = new Map(posts.map((post) => [post.id, readingMinutes(post.html)]));
+
+  const link = (post: Post): PostLink => ({
+    slug: post.id,
+    title: post.data.title,
+    category: post.data.category,
+    minutes: minutes.get(post.id) ?? 1,
+  });
+
+  /**
+   * "इसी सिलसिले में" के लिए तीन रचनाएँ / three posts for the foot of the page.
+   *
+   * पहले उसी श्रेणी की, फिर बाक़ी — दोनों में नई पहले. श्रेणी को पहले रखना ही
+   * "सिलसिला" शब्द को सच बनाता है: संस्मरण पढ़ चुके पाठक को अगला संस्मरण मिले,
+   * कोई भी ताज़ा रचना नहीं. श्रेणी में कुछ और न हो तो सूची ख़ाली छोड़ने के बजाय
+   * बाक़ी रचनाओं से भर दी जाती है — तीन पंक्तियाँ न होने से बेहतर है कि हों.
+   *
+   * Same category first, then everything else, newest first within each. The
+   * category ordering is what makes the heading honest: someone who has just
+   * read a memoir is offered another, not merely the most recent thing posted.
+   * When a category holds nothing else the list is topped up rather than left
+   * empty — three lines beat none.
+   */
+  const relatedFor = (post: Post): PostLink[] => {
+    const others = posts.filter((other) => other.id !== post.id);
+    const sameCategory = others.filter((other) => other.data.category === post.data.category);
+    const rest = others.filter((other) => other.data.category !== post.data.category);
+
+    return [...sameCategory, ...rest].slice(0, 3).map(link);
+  };
+
   return posts.map((post) => ({
     params: { slug: post.id },
-    props: { post },
+    props: { post, related: relatedFor(post) },
   }));
 }
 
 interface Props {
   post: Post;
+  related: PostLink[];
 }
 
-const { post } = Astro.props;
+const { post, related } = Astro.props;
 ---
 
-<PostLayout post={post}>
+<PostLayout post={post} related={related}>
   {/*
     set:html सुरक्षित है क्योंकि HTML हमारा अपना बनाया हुआ है — lexicalToHtml
     हर text को escape करता है, इसलिए रचना में लिखा `<div>` अक्षरों की तरह दिखता है.

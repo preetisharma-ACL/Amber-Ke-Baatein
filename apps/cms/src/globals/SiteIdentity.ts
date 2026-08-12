@@ -37,7 +37,7 @@ export const SiteIdentity: GlobalConfig = {
   admin: {
     group: 'व्यवस्था / Settings',
     description:
-      'होम पन्ने पर दिखने वाला परिचय — नाम, भूमिका, दो पंक्तियाँ अपने बारे में, और दस्तख़त। Save करते ही साइट दोबारा बन जाती है।',
+      'आपका परिचय — नाम, भूमिका, गोल तस्वीर, दो पंक्तियाँ अपने बारे में, और दस्तख़त। यह होम पन्ने पर और हर रचना के शीर्षक के नीचे दिखता है। Save करते ही साइट दोबारा बन जाती है।',
   },
   access: {
     // साइट बिना लॉगिन के build होती है, इसलिए पढ़ना खुला है।
@@ -58,7 +58,7 @@ export const SiteIdentity: GlobalConfig = {
       label: 'पूरा नाम / Full name',
       admin: {
         description:
-          'होम पन्ने पर दो जगह दिखता है — बाईं ओर और तस्वीर के नीचे — और नीचे की पट्टी में copyright में भी, अगर वह खाना खाली छोड़ा हो।',
+          'होम पन्ने पर दो जगह, हर रचना के शीर्षक के नीचे गोल तस्वीर के साथ, और नीचे की पट्टी में copyright में भी — अगर वह खाना खाली छोड़ा हो।',
       },
     },
     {
@@ -67,7 +67,8 @@ export const SiteIdentity: GlobalConfig = {
       defaultValue: 'कवि',
       label: 'भूमिका / Role',
       admin: {
-        description: 'नाम के ठीक नीचे, छोटे अक्षरों में — जैसे "कवि"।',
+        description:
+          'नाम के ठीक नीचे, छोटे अक्षरों में — जैसे "कवि"। होम पन्ने पर और हर रचना के नीचे नाम के साथ दिखती है।',
       },
     },
     {
@@ -121,6 +122,32 @@ export const SiteIdentity: GlobalConfig = {
       admin: {
         description:
           'पोलरॉइड फ़्रेम में दिखने वाली तस्वीर। खड़ी (portrait) तस्वीर सबसे अच्छी लगती है — फ़्रेम 4:5 का है और बाक़ी हिस्सा अपने आप कट जाता है, इसलिए चेहरा बीच में रखिए। खाली छोड़ेंगे तो पुरानी तस्वीर ही रहेगी।',
+      },
+    },
+    {
+      /**
+       * रचना के ऊपर वाली गोल तस्वीर / the round photograph beside the byline.
+       *
+       * ── पोलरॉइड वाली तस्वीर यहाँ क्यों नहीं चलती / why not reuse the portrait ─
+       * पोलरॉइड 4:5 का है और उसमें अक्सर आधा शरीर, पीछे की गली, सब आता है — वह
+       * बड़ा दिखने के लिए बनाया गया है। यहाँ तस्वीर 2.5rem की गोल बिंदी है; उसमें
+       * वही तस्वीर डालने पर चेहरा एक धब्बा भर रह जाता है।
+       *
+       * The polaroid is 4:5 and usually frames the whole upper body — it is made
+       * to be looked at. This one is a 2.5rem disc; the same photograph in it
+       * reduces the face to a smudge. A tight head-and-shoulders crop is a
+       * different picture, so it is a different field.
+       *
+       * खाली छोड़िए तो पोलरॉइड वाली ही चलेगी / left empty, the portrait is used —
+       * a slightly loose crop still beats a blank circle.
+       */
+      name: 'avatarImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'गोल तस्वीर / Byline photo',
+      admin: {
+        description:
+          'हर रचना के शीर्षक के नीचे, नाम के साथ दिखने वाली छोटी गोल तस्वीर। सिर्फ़ चेहरे वाली, चौकोर (square) तस्वीर सबसे अच्छी लगती है — कम से कम 200px। खाली छोड़ेंगे तो ऊपर वाली "अपनी तस्वीर" ही गोल करके दिखा दी जाएगी।',
       },
     },
     {

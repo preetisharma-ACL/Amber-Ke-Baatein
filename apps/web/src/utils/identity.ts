@@ -44,6 +44,13 @@ export interface Identity {
   heroImage: IdentityImage | null;
   /** पोलरॉइड वाली तस्वीर / the polaroid portrait. */
   portraitImage: IdentityImage | null;
+  /**
+   * रचना के शीर्षक के नीचे वाली गोल तस्वीर / the round byline photo.
+   * `avatarImage` न चढ़ाई हो तो पोलरॉइड वाली ही आती है — ढीली कटी तस्वीर भी
+   * ख़ाली गोले से बेहतर है. Falls back to the portrait: a loosely cropped face
+   * still beats an empty circle.
+   */
+  avatarImage: IdentityImage | null;
 }
 
 /**
@@ -78,6 +85,7 @@ interface CmsIdentity {
    */
   heroImage?: CmsUpload | number | null;
   portraitImage?: CmsUpload | number | null;
+  avatarImage?: CmsUpload | number | null;
 }
 
 /**
@@ -187,6 +195,7 @@ async function fetchIdentity(): Promise<Identity> {
     copyright: pick(doc.copyright, `© ${byline}`),
     heroImage: image(doc.heroImage),
     portraitImage: image(doc.portraitImage),
+    avatarImage: image(doc.avatarImage) ?? image(doc.portraitImage),
   };
 }
 

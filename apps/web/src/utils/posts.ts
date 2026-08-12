@@ -70,6 +70,25 @@ export interface Post {
    */
   cover: PostCover | null;
   /**
+   * ऊपर पूरी चौड़ाई में दिखने वाली तस्वीर / the wide banner behind the title.
+   *
+   * `null` का मतलब है "कुछ नहीं चढ़ाया" — तब पन्ना साइट की अपनी बनी-बनाई तस्वीर
+   * लगाता है (`src/assets/poetry-banner.png`), देखिए PostLayout.
+   *
+   * ── मुख्य तस्वीर यहाँ जान-बूझकर नहीं आती / the cover deliberately does not
+   * stand in ──
+   * एक समय यह `coverImage` पर गिरता था. पर cover खड़ी या चौकोर होती है और यहाँ
+   * उसे 4:1 में काटना पड़ता — यानी जो सबसे ज़रूरी था वही कटता. और चूँकि ज़्यादातर
+   * रचनाओं में cover होती है, वह सहारा साइट की अपनी बनी-बनाई तस्वीर को कभी
+   * दिखने ही नहीं देता — यानी वह तस्वीर बनवाने का कोई मतलब ही न रहता.
+   *
+   * This briefly fell back to `coverImage`. But a cover is portrait or square
+   * and would be cropped to 4:1 here, which cuts exactly what mattered — and
+   * since most posts have a cover, that fallback would mean the purpose-made
+   * banner never appeared at all.
+   */
+  banner: PostCover | null;
+  /**
    * रचना के साथ सुनने-देखने की चीज़ें / optional media shown beside the poem.
    * Both are optional and independent: a post may have neither, either, or both.
    */
@@ -80,6 +99,24 @@ export interface Post {
     /** जैसा चिपकाया गया वैसा ही — पहचान साइट पर होती है, CMS में नहीं. */
     videoUrl?: string;
   };
+}
+
+/**
+ * पड़ोसी रचना का पता / just enough of a post to link to it.
+ *
+ * पूरी `Post` नहीं भेजी जाती क्योंकि उसमें पूरा HTML शरीर होता है — हर पन्ने के
+ * साथ दो और रचनाओं का पूरा पाठ जुड़ जाता, सिर्फ़ दो शीर्षक दिखाने के लिए।
+ *
+ * Deliberately not a whole `Post`: that carries the rendered body, so passing
+ * two of them into every page would ship two extra poems' worth of HTML to
+ * print two titles.
+ */
+export interface PostLink {
+  slug: string;
+  title: string;
+  category: string;
+  /** पढ़ने में कितना समय / the same estimate the post's own page prints. */
+  minutes: number;
 }
 
 interface CmsCategory {
@@ -99,6 +136,7 @@ interface CmsPost {
   audio?: { url?: string; title?: string } | number | null;
   videoUrl?: string | null;
   coverImage?: CmsCoverImage | number | null;
+  bannerImage?: CmsCoverImage | number | null;
 }
 
 /** depth=1 पर पूरा object; सिर्फ़ id आए तो तस्वीर नहीं मानी जाती. */
@@ -131,6 +169,32 @@ interface CmsResponse {
  * old copy until the dev server restarted. Dev therefore always refetches.
  */
 let cache: Promise<Post[]> | null = null;
+
+/**
+ * चढ़ाई हुई तस्वीर को साफ़ आकार में / normalise an upload, or report its absence.
+ *
+ * बिना `url` वाली तस्वीर को "है ही नहीं" माना जाता है — अधूरा upload रचना के
+ * ऊपर टूटा हुआ खाना दिखाने से बेहतर है कि दिखे ही नहीं.
+ * A picture without a `url` counts as absent: a half-failed upload should leave
+ * the poem looking exactly as it did, not put a broken frame above it.
+ *
+ * `alt` न हो तो शीर्षक — कोई भी वर्णन कोई वर्णन न होने से बेहतर है.
+ * The title stands in for a missing `alt`: an imperfect description beats none.
+ */
+function image(
+  value: CmsCoverImage | number | null | undefined,
+  fallbackAlt: string
+): PostCover | null {
+  if (!value || typeof value !== 'object' || !value.url) return null;
+
+  return {
+    url: value.url,
+    alt: value.alt?.trim() || fallbackAlt,
+    caption: value.caption?.trim() || undefined,
+    width: value.width ?? undefined,
+    height: value.height ?? undefined,
+  };
+}
 
 async function fetchPosts(): Promise<Post[]> {
   const url = `${CMS_URL}/api/posts?depth=1&limit=200&sort=-order`;
@@ -168,22 +232,8 @@ async function fetchPosts(): Promise<Post[]> {
       order: doc.order ?? 0,
     },
     html: lexicalToHtml(doc.content),
-    /**
-     * बिना `url` वाली तस्वीर को "है ही नहीं" माना जाता है — अधूरा upload रचना के
-     * ऊपर टूटा हुआ खाना दिखाने से बेहतर है कि दिखे ही नहीं.
-     * A cover without a `url` counts as absent: a half-failed upload should
-     * leave the poem looking exactly as it did, not put a broken frame above it.
-     */
-    cover:
-      doc.coverImage && typeof doc.coverImage === 'object' && doc.coverImage.url
-        ? {
-            url: doc.coverImage.url,
-            alt: doc.coverImage.alt?.trim() || doc.title,
-            caption: doc.coverImage.caption?.trim() || undefined,
-            width: doc.coverImage.width ?? undefined,
-            height: doc.coverImage.height ?? undefined,
-          }
-        : null,
+    cover: image(doc.coverImage, doc.title),
+    banner: image(doc.bannerImage, doc.title),
     media: {
       // depth=1 से audio पूरा आता है; सिर्फ़ id आए तो चुपचाप छोड़ दीजिए.
       // At depth=1 the upload is populated; if it ever arrives as a bare id

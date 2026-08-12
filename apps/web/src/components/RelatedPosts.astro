@@ -1,0 +1,157 @@
+---
+import type { PostLink } from '../utils/posts';
+
+/**
+ * "इसी सिलसिले में" / where to go when this poem ends.
+ *
+ * पहले यहाँ सिर्फ़ "सारी रचनाएँ" का बटन था — पढ़ चुके पाठक को सूची में लौटकर
+ * अगली रचना ख़ुद ढूँढनी पड़ती थी। नाम के साथ रखी हुई तीन पंक्तियाँ वह काम पहले
+ * ही कर देती हैं।
+ *
+ * The page used to end at "all posts", which sent a reader who had just
+ * finished something back to a list to go looking. Three named lines do that
+ * work for them.
+ *
+ * ── कार्ड नहीं, सूची / a list, not cards ─────────────────────────────────────
+ * कार्ड में तस्वीर और झलक भी चाहिए होती है, और वे रचना के ठीक बाद उससे ज़्यादा
+ * जगह घेर लेते हैं। यहाँ हर पंक्ति में उतना ही है जितने से चुना जा सकता है:
+ * किस तरह की रचना है, नाम क्या है, और कितनी लंबी है।
+ *
+ * Cards want a picture and an excerpt, and directly after a poem they take up
+ * more room than the poem's own ending. A line carries exactly what a choice
+ * needs: what kind of piece it is, what it is called, and how long it will take.
+ */
+interface Props {
+  posts: PostLink[];
+}
+
+const { posts } = Astro.props;
+---
+
+{
+  posts.length > 0 && (
+    <section class="related" aria-labelledby="related-heading" data-reveal>
+      <h2 class="related__head" id="related-heading">
+        इसी सिलसिले में
+      </h2>
+
+      <ul class="related__list">
+        {posts.map((post) => (
+          <li>
+            <a class="rel" href={`/posts/${post.slug}`}>
+              <span class="rel__cat">{post.category}</span>
+              <span class="rel__title">{post.title}</span>
+              <span class="rel__mins">{post.minutes} मिनट</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<style>
+  .related {
+    margin-top: 3.5rem;
+    padding-top: 2.2rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .related__head {
+    margin: 0 0 0.6rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .related__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /**
+   * तीन खाने / three columns: kind, name, length.
+   * श्रेणी की चौड़ाई सबसे लंबे नाम से तय होती है (`max-content`), इसलिए तीनों
+   * शीर्षक एक ही रेखा से शुरू होते हैं — ऊपर-नीचे टेढ़े नहीं दिखते.
+   * The category column takes its width from the longest name, so every title
+   * starts on the same line instead of stepping in and out down the list.
+   */
+  .rel {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, max-content) minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 1.4rem;
+    padding: 1.15rem 0.6rem;
+    margin: 0 -0.6rem;
+    border-bottom: 1px solid var(--rule);
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      background 0.4s ease,
+      padding-inline 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .related__list li:last-child .rel {
+    border-bottom: 0;
+  }
+
+  .rel:hover,
+  .rel:focus-visible {
+    background: rgba(var(--amber-rgb), 0.06);
+    padding-inline: 0.9rem;
+  }
+
+  .rel:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  .rel__cat {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    color: var(--kite);
+    opacity: 0.9;
+  }
+
+  .rel__title {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--ink);
+    transition: color 0.35s ease;
+  }
+
+  .rel:hover .rel__title {
+    color: var(--amber);
+  }
+
+  .rel__mins {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.76rem;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  /**
+   * फ़ोन पर श्रेणी शीर्षक के ऊपर / on a phone the category moves above the title.
+   * तीन खाने 20rem में नहीं आते — शीर्षक हर पंक्ति पर टूटने लगता है.
+   * Three columns do not fit in 20rem; the titles start wrapping every line.
+   */
+  @media (max-width: 34rem) {
+    .rel {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.3rem 1rem;
+      align-items: center;
+    }
+
+    .rel__cat {
+      grid-column: 1 / -1;
+      font-size: 0.74rem;
+    }
+  }
+</style>

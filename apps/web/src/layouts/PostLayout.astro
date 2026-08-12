@@ -1,305 +1,744 @@
 ---
+import { getImage } from 'astro:assets';
+
+import bannerFallback from '../assets/poetry-banner.png';
+import portraitFallback from '../assets/alok-portrait.jpg';
 import BaseLayout from './BaseLayout.astro';
 import Comments from '../components/Comments.astro';
 import PostActions from '../components/PostActions.astro';
 import PostMedia from '../components/PostMedia.astro';
-import { parseVideoUrl } from '../utils/embeds';
+import ReadingDial from '../components/ReadingDial.astro';
+import RelatedPosts from '../components/RelatedPosts.astro';
 import { cloudinaryVariant } from '../utils/gallery';
-import type { Post } from '../utils/posts';
+import { getIdentity } from '../utils/identity';
+import { echoesOpening, readingMinutes } from '../utils/reading';
+import type { Post, PostLink } from '../utils/posts';
 
 interface Props {
   post: Post;
+  /** नीचे "इसी सिलसिले में" वाली सूची / the three lines at the foot of the page. */
+  related?: PostLink[];
 }
 
-const { post } = Astro.props;
+const { post, related = [] } = Astro.props;
 const { title, date, category, excerpt } = post.data;
 const { audioUrl, audioTitle, videoUrl } = post.media;
 
 /**
- * पट्टी तभी बने जब उसमें कुछ हो / only lay out two columns when there is a
- * second column to lay out.
+ * लेखक का नाम, भूमिका और गोल तस्वीर / the author's name, role and byline photo.
  *
- * The video URL is parsed here as well as in PostMedia because a link the
- * parser rejects must not widen the layout — an unrecognised URL should leave
- * the poem full-width rather than sit beside an empty rail.
+ * ये रचना पर नहीं, `identity` global पर टिके हैं — एक ही लेखक है, इसलिए हर रचना
+ * में दोबारा भरवाना उसी नाम की चार-चार नक़लें बनाना होता, जो पहले हो चुका है और
+ * जिससे निकलने के लिए ही यह global बना था.
+ *
+ * These come from the `identity` global rather than from the post: there is one
+ * author, so a per-post byline would recreate exactly the scattered copies of
+ * one name that the global was built to remove.
+ *
+ * यह fetch build रोक नहीं सकता / this fetch cannot fail the build — see
+ * utils/identity.ts: a missing name means a stale byline, not an empty site.
  */
-const hasMedia = Boolean(audioUrl) || Boolean(parseVideoUrl(videoUrl));
+const identity = await getIdentity();
+
+/** पढ़ने का अंदाज़ा / the estimate printed in the eyebrow, derived from the body. */
+const minutes = readingMinutes(post.html);
 
 /**
- * मुख्य तस्वीर / the cover image.
- *
- * ── यह `hasMedia` में क्यों नहीं गिनी जाती / why this does not count as media ──
- * `hasMedia` तय करता है कि पन्ना दो स्तंभों में बँटेगा या नहीं। मुख्य तस्वीर बग़ल
- * की पट्टी में नहीं जाती — वह शीर्षक के नीचे, पढ़ने की उसी चौड़ाई में रहती है।
- * दोनों को एक साथ गिन लेते तो सिर्फ़ तस्वीर वाली रचना बेवजह चौड़ी हो जाती और
- * उसके बग़ल में ख़ाली पट्टी दिखती।
- *
- * `hasMedia` decides the two-column layout. A cover never goes in the rail, so
- * counting it there would widen a post that has nothing to put beside itself.
- *
- * ── आकार Cloudinary से / sized by Cloudinary ────────────────────────────────
- * चढ़ाई गई तस्वीर 6000×4000 और 4MB तक की होती है। पढ़ने की चौड़ाई ~40rem (640px)
- * है, इसलिए 1280px माँगा जाता है — retina परदे के लिए दुगुना, उससे ज़्यादा नहीं।
- *
- * Uploads run to 6000×4000 and several MB. The picture is capped at 28rem wide
- * (see `--cover-max-w` in the styles), so 960px covers a 2× screen and nothing
- * more. `c_limit` never crops and never upscales a smaller original; `f_auto`
- * picks WebP or AVIF per browser.
+ * सार शीर्षक के नीचे तभी छपे जब वह रचना की पहली पंक्ति की नक़ल न हो.
+ * The standfirst is printed only when it is not the poem's own opening line
+ * repeated — see `echoesOpening` for why that happens so often here.
  */
-const coverSrc = post.cover
-  ? cloudinaryVariant(post.cover.url, 'w_960,c_limit,f_auto,q_auto')
-  : null;
+const lede = excerpt && !echoesOpening(excerpt, post.html) ? excerpt : null;
 
 /**
- * ऊँचाई पहले से बता दीजिए / reserve the box before the file arrives.
- * बिना इसके तस्वीर आते ही रचना नीचे खिसक जाती है — पाठक की आँख उसी वक़्त पहली
- * पंक्ति पर होती है. Without this the poem jumps down as the image loads,
- * exactly when the reader's eye is on the first line.
+ * ऊपर की चौड़ी तस्वीर / the banner behind the title.
+ *
+ * हर रचना के ऊपर कोई न कोई तस्वीर होती है: लेखक की चढ़ाई हुई, या साइट की अपनी
+ * बनी-बनाई (`src/assets/poetry-banner.png`). इसीलिए यहाँ "तस्वीर न हो तो" वाली
+ * कोई हालत नहीं बची — शीर्षक हमेशा किसी तस्वीर पर बैठता है, और गहरा पर्दा उसे
+ * हर हाल में पढ़ने लायक़ रखता है.
+ *
+ * Every post opens on a photograph: the uploaded banner, or the site's own.
+ * There is no "no image" branch left — the title always sits on a picture, and
+ * the scrim keeps it legible over any of them.
+ *
+ * ── आकार दो अलग तरीक़ों से / two different resizers ──────────────────────────
+ * repo वाली तस्वीर Astro build के वक़्त बदलता है (1.7MB का PNG एक बार में ही
+ * webp हो जाता है), Cloudinary वाली URL से — वही बँटवारा जो Hero.astro में है.
+ * Bundled assets go through Astro at build time — which is the whole reason
+ * this file lives in `src/assets` and not in `public/`, where the 1.7MB PNG
+ * would be served to every reader byte for byte. Cloudinary images are resized
+ * from the URL instead, exactly as Hero.astro does it.
+ *
+ * 1800px पूरे परदे के लिए काफ़ी है. `c_limit` कभी काटता नहीं और छोटी तस्वीर को
+ * खींचता भी नहीं; काट-छाँट browser करता है (`object-fit: cover`) — यह फ़ैसला CDN
+ * पर छोड़ना चेहरे कटवाने का सबसे आसान तरीक़ा है.
+ * 1800px covers a wide monitor and a retina phone alike. `c_limit` never crops
+ * and never upscales; the crop is the browser's, which keeps it reversible —
+ * letting the CDN crop is the quickest way to cut a face in half and never
+ * find out.
  */
-const coverRatio =
-  post.cover?.width && post.cover?.height ? post.cover.height / post.cover.width : null;
+const BANNER_WIDTH = 1800;
+
+const bannerSrc = post.banner
+  ? cloudinaryVariant(post.banner.url, `w_${BANNER_WIDTH},c_limit,f_auto,q_auto`)
+  : (await getImage({ src: bannerFallback, format: 'webp', width: BANNER_WIDTH })).src;
+
+/**
+ * वीडियो चलाने से पहले दिखने वाली तस्वीर / the still behind the play button.
+ *
+ * Instagram अपनी तस्वीर नहीं देता (देखिए `utils/embeds.ts`), इसलिए वहाँ रचना की
+ * अपनी तस्वीर काम आती है — मुख्य तस्वीर पहले, वरना ऊपर वाली चौड़ी.
+ * Instagram publishes no still, so the post's own picture stands in: the cover
+ * first, the banner if there is no cover. 640px because the frame is at most
+ * 21rem wide, so that is already a 2× rendition.
+ */
+const posterSrc = (() => {
+  const source = post.cover ?? post.banner;
+  return source ? cloudinaryVariant(source.url, 'w_640,c_limit,f_auto,q_auto') : null;
+})();
+
+/**
+ * नाम के साथ वाली गोल तस्वीर / the round byline photo.
+ *
+ * यहाँ हमेशा कोई न कोई तस्वीर होती है — CMS वाली, या repo में रखी हुई पुरानी
+ * वाली. पहले यहाँ तस्वीर न होने पर नाम का पहला अक्षर छपता था, पर वह एक असली
+ * विकल्प नहीं था: लेखक की तस्वीर मौजूद है, बस CMS में चढ़ी नहीं है — और अक्षर
+ * देखकर लगता है कि तस्वीर लगनी थी और लग नहीं पाई.
+ *
+ * There is always a photograph: the uploaded one, or the one bundled in the
+ * repo. This used to print the name's first letter when nothing was uploaded,
+ * which was not a real alternative — the author's picture exists, it simply had
+ * not been added to the CMS yet, and an initial reads as an image that failed.
+ *
+ * ── दो अलग resizer / two different resizers ─────────────────────────────────
+ * repo वाली तस्वीर Astro build के वक़्त बदलता है, Cloudinary वाली URL से — वही
+ * बँटवारा जो Hero.astro में है, उन्हीं कारणों से.
+ * Bundled assets go through Astro at build time, Cloudinary images are resized
+ * from the URL — the same split Hero.astro makes, for the same reasons.
+ *
+ * 160px इसलिए कि तस्वीर 2.75rem (44px) की दिखती है — retina के लिए दुगुने से भी
+ * ज़्यादा. 160px for a 2.75rem circle: more than 2× on a retina screen.
+ */
+const AVATAR_WIDTH = 160;
+
+const avatarSrc = identity.avatarImage
+  ? cloudinaryVariant(identity.avatarImage.url, `w_${AVATAR_WIDTH},c_limit,f_auto,q_auto`)
+  : (await getImage({ src: portraitFallback, format: 'webp', width: AVATAR_WIDTH })).src;
 ---
 
 <BaseLayout title={title} description={excerpt}>
+  {/*
+    यह script जान-बूझकर `is:inline` है और जान-बूझकर <head> में जाती है.
+    Deliberately inline, and deliberately in the head.
+
+    नीचे वाली असली script module है, यानी पन्ना बन जाने के बाद चलती है। अगर
+    छिपाने वाला नियम वहाँ से लगता तो पाठक एक पल पूरी रचना देखता, फिर वह ग़ायब
+    होकर दोबारा उभरती — झिलमिलाहट। यहाँ यह रचना के markup से *पहले* चल जाती है।
+
+    The module script below runs after parse, so adding the "start hidden" class
+    there would flash the whole poem and then fade it back in. In the head it
+    runs before the body exists. It is also the feature test: without
+    IntersectionObserver, or with motion turned off, the class is never added
+    and every element simply stays visible — the right fallback for reading.
+  */}
+  <script slot="head" is:inline>
+    (function () {
+      var ok =
+        'IntersectionObserver' in window &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (ok) document.documentElement.classList.add('reveal-ready');
+    })();
+  </script>
+
   <article class="post">
-    {/* शीर्षक पूरी चौड़ाई में — रचना और मीडिया उसके नीचे बँटते हैं */}
-    <header class="post__head">
-      <div class="date">{date} · {category}</div>
-      <h2>{title}</h2>
-      <div class="title-rule"></div>
-    </header>
-
     {/*
-      मुख्य तस्वीर, शीर्षक के ठीक नीचे / the cover, directly under the heading.
-      `.post__cols` से बाहर है, इसलिए मीडिया वाली रचना में भी यह चौड़ी नहीं होती —
-      पढ़ने की उसी चौड़ाई में रहती है जिसमें शीर्षक है.
-      Outside `.post__cols`, so it keeps the reading measure even on a post
-      whose body steps out into the wider two-column layout.
-    */}
-    {coverSrc && post.cover && (
-      <figure class="cover">
-        <img
-          src={coverSrc}
-          alt={post.cover.alt}
-          width={post.cover.width}
-          height={post.cover.height}
-          style={coverRatio ? `aspect-ratio:${post.cover.width}/${post.cover.height}` : undefined}
-          loading="eager"
-          decoding="async"
-        />
-        {post.cover.caption && <figcaption>{post.cover.caption}</figcaption>}
-      </figure>
-    )}
+      ── ऊपर की चौड़ी पट्टी / the banner ─────────────────────────────────────────
+      पूरे परदे भर, पारदर्शी navbar के पीछे से शुरू होकर. शीर्षक इसी के ऊपर, नीचे
+      की तरफ़ बैठता है — बीच में रखने पर वह तैरता हुआ लगता है और तस्वीर का ऊपरी
+      हिस्सा बेकार चला जाता है.
 
-    <div class:list={['post__cols', { 'has-media': hasMedia }]}>
-      {/*
-        रचना बाईं ओर / the poem on the left.
-        `min-width: 0` सँकरी होने से बचाता है — बिना इसके लंबी पंक्तियाँ grid को
-        चौड़ा कर देती हैं. Without it a long unbroken line of verse forces the
-        grid column wider than its share and the rail gets squeezed.
-      */}
-      <div class="post__body">
-        <div class="post-body">
-          <slot />
-        </div>
+      Full-bleed, starting behind the transparent navbar. The title sits low in
+      it rather than centred: centred it floats, and the top of the photograph
+      is wasted holding nothing.
+    */}
+    <div class="banner">
+      <div class="banner__art" aria-hidden="true">
+        {/* सजावट है, इसलिए alt खाली / decorative: the title says what this is. */}
+        <img class="banner__img" src={bannerSrc} alt="" data-parallax />
+        <div class="banner__aurora"></div>
+        <div class="banner__grain"></div>
+        <div class="banner__veil"></div>
       </div>
 
-      {hasMedia && (
-        <PostMedia audioUrl={audioUrl} audioTitle={audioTitle} videoUrl={videoUrl} title={title} />
-      )}
+      <header class="banner__inner">
+        <p class="eyebrow">
+          {category && <span class="eyebrow__cat">{category}</span>}
+          {category && (
+            <span class="eyebrow__sep" aria-hidden="true">
+              ·
+            </span>
+          )}
+          <time>{date}</time>
+          <span class="eyebrow__sep" aria-hidden="true">
+            ·
+          </span>
+          <span>{minutes} मिनट का पाठ</span>
+        </p>
+
+        <h1 class="banner__title">{title}</h1>
+
+        {lede && <p class="banner__lede">{lede}</p>}
+      </header>
     </div>
 
-    {/* नीचे का हिस्सा फिर पूरी चौड़ाई में / everything below spans both columns */}
-    <div class="ornament">✦ ✦ ✦</div>
+    {/*
+      ── नाम की पट्टी / the byline strip ────────────────────────────────────────
+      तस्वीर और लिखाई के बीच की सीमा. दोनों तरफ़ पूरी चौड़ाई की लकीरें इसे एक
+      पड़ाव बना देती हैं: ऊपर पन्ने का आवरण, नीचे रचना.
+      The seam between the picture and the writing. The two full-width rules
+      turn it into a landing: cover above, poem below.
+    */}
+    <div class="byline">
+      <div class="byline__inner">
+        <img
+          class="byline__face"
+          src={avatarSrc}
+          alt={identity.avatarImage?.alt || identity.byline}
+          width={AVATAR_WIDTH}
+          height={AVATAR_WIDTH}
+          loading="lazy"
+          decoding="async"
+        />
 
-    <PostActions slug={post.id} title={title} />
+        <span class="byline__who">
+          <span class="byline__name">{identity.byline}</span>
+          {identity.role && <span class="byline__role">{identity.role}</span>}
+        </span>
+      </div>
+    </div>
 
-    <div class="post-nav">
+    <div class="post-body">
+      <slot />
+    </div>
+
+    {/* रचना का अंत / the poem's ending, signed. */}
+    <div class="colophon" data-reveal>
+      <div class="colophon__mark" aria-hidden="true">
+        <span></span>✦<span></span>
+      </div>
+      {identity.signature && <p class="colophon__sign">— {identity.signature}</p>}
+    </div>
+
+    <PostMedia
+      audioUrl={audioUrl}
+      audioTitle={audioTitle}
+      videoUrl={videoUrl}
+      title={title}
+      coverUrl={posterSrc}
+    />
+
+    <div class="post-foot" data-reveal>
+      <PostActions slug={post.id} title={title} />
+      <Comments postId={post.cmsId} />
+    </div>
+
+    <RelatedPosts posts={related} />
+
+    <div class="post-all" data-reveal>
       <a class="btn" href="/posts">← सारी रचनाएँ</a>
     </div>
-
-    <Comments postId={post.cmsId} />
   </article>
+
+  <ReadingDial />
 </BaseLayout>
 
+<script>
+  /**
+   * पढ़ते-पढ़ते पंक्तियाँ उभरती हैं / the body reveals itself as you read.
+   *
+   * छिपाने का नियम CSS में है (`.reveal-ready` — ऊपर वाली inline script), यहाँ
+   * सिर्फ़ दिखाने का काम होता है. इसलिए JavaScript न चले तो कुछ छिपा नहीं रह
+   * जाता — यह सबसे ज़रूरी शर्त है, क्योंकि छिपी हुई रचना का कोई मतलब नहीं.
+   *
+   * The hiding is done in CSS behind a class the inline script adds only after
+   * a feature and motion check; this file only ever *un*-hides. So a failure
+   * anywhere in here leaves the poem fully readable, which is the one outcome
+   * that actually matters.
+   */
+  const root = document.documentElement;
+
+  if (root.classList.contains('reveal-ready')) {
+    const targets = document.querySelectorAll<HTMLElement>('.post-body > *, [data-reveal]');
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        /* एक साथ आने वालों को एक के बाद एक / stagger within a batch, not by the
+           element's index on the page: a global index would leave everything
+           near the end waiting the same long delay every time. */
+        let step = 0;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const el = entry.target as HTMLElement;
+          el.style.transitionDelay = `${Math.min(step, 5) * 70}ms`;
+          el.classList.add('is-in');
+          io.unobserve(el);
+          step += 1;
+        }
+      },
+      /* नीचे से 8% पहले ही शुरू हो जाए, वरना पंक्ति परदे में आकर भी कुछ पल ख़ाली
+         दिखती है / start just before the element reaches the fold. */
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.05 }
+    );
+
+    targets.forEach((el) => io.observe(el));
+  }
+
+  /**
+   * पीछे की तस्वीर धीरे चलती है / the banner drifts slower than the page, which
+   * is what gives the header depth.
+   *
+   * गति बंद हो तो बिलकुल नहीं — और तस्वीर परदे से बाहर जाते ही हिसाब बंद, ताकि
+   * पूरी रचना पढ़ते हुए हर scroll पर बेकार का काम न हो.
+   * Skipped entirely when motion is reduced, and switched off once the banner
+   * has scrolled away so the rest of a long poem costs nothing per scroll.
+   */
+  const art = document.querySelector<HTMLElement>('[data-parallax]');
+  const banner = art?.closest<HTMLElement>('.banner');
+
+  if (art && banner && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let visible = true;
+    let ticking = false;
+
+    const move = () => {
+      ticking = false;
+      art.style.transform = `translate3d(0, ${window.scrollY * 0.14}px, 0) scale(1.12)`;
+    };
+
+    new IntersectionObserver((entries) => {
+      visible = entries[0]?.isIntersecting ?? false;
+    }).observe(banner);
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (!visible || ticking) return;
+        ticking = true;
+        requestAnimationFrame(move);
+      },
+      { passive: true }
+    );
+
+    move();
+  }
+</script>
+
 <style>
+  /**
+   * ── पन्ने की चौड़ाई / the page's measure ─────────────────────────────────────
+   * बाक़ी साइट 40rem पर पढ़ी जाती है. रचना का पन्ना उससे थोड़ा चौड़ा है, क्योंकि
+   * यहाँ कविता बीच में सजी होती है और उसके नीचे मीडिया का पट्ट, टिप्पणियाँ और
+   * सूची — ये सब 40rem में सँकरे लगते हैं. `.wrap` से बाहर निकलने का वही तरीक़ा
+   * जो चौड़े हिस्सों के लिए साइट पहले से इस्तेमाल करती है.
+   *
+   * The rest of the site reads at 40rem. This page is a little wider: the verse
+   * is centred within it and the media panel, comments and related list all sit
+   * under it, and those look pinched at the narrower measure. Steps outside
+   * `.wrap` the same way the site's other wide sections do.
+   */
   .post {
-    padding: 5.5rem 0 3rem;
-    animation: fadeUp 0.7s ease both;
-  }
-
-  .date {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.78rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--kite-2);
-    text-align: center;
-  }
-
-  h2 {
-    font-size: clamp(1.8rem, 6vw, 2.6rem);
-    font-weight: 400;
-    line-height: 1.45;
-    text-align: center;
-    margin: 0.85rem auto 1.5rem;
-    max-width: 22ch;
-  }
-
-  /**
-   * मुख्य तस्वीर / the cover image.
-   *
-   * चौड़ाई पढ़ने की चौड़ाई जितनी ही — पन्ने भर की नहीं। रचना पहले है, तस्वीर
-   * उसके साथ है; पूरे परदे पर फैली तस्वीर शीर्षक से बड़ी लगने लगती है।
-   *
-   * Content width, not full-bleed. The writing leads and the picture
-   * accompanies it — stretched edge to edge it would outweigh the title it sits
-   * under. `margin-inline: auto` keeps it centred if the column is ever wider.
-   */
-  .cover {
-    margin: 0 auto 2.75rem;
-    max-width: 100%;
-  }
-
-  /**
-   * ── तस्वीर का आकार / how large the picture gets ─────────────────────────────
-   * पहले यह पूरी पढ़ने-चौड़ाई (40rem) लेती थी और शीर्षक से बड़ी दिखने लगती थी —
-   * पाठक पहले तस्वीर देखता, फिर कविता। यहाँ लिखाई पहले है।
-   *
-   * This used to fill the whole 40rem measure, which made it read as the main
-   * event — the eye landed on the photograph before the poem. Two caps instead
-   * of one, because one is never enough for both shapes: a landscape photo is
-   * limited by width, a portrait one by height. With `width`/`height: auto` the
-   * browser scales inside whichever cap binds first, so nothing is cropped and
-   * nothing is stretched.
-   *
-   * आकार बदलना हो तो बस ये दो नंबर / to resize, these two numbers are the only
-   * knobs — and `w_960` in the frontmatter should stay roughly twice
-   * `--cover-max-w` so a retina screen still gets a sharp image.
-   */
-  .cover img {
-    --cover-max-w: 28rem;
-    --cover-max-h: 20rem;
-
-    display: block;
-    margin: 0 auto;
-    width: auto;
-    height: auto;
-    max-width: min(100%, var(--cover-max-w));
-    max-height: var(--cover-max-h);
-    border-radius: 4px;
-    /* बाक़ी साइट की तरह हल्की लकीर / the same hairline the site uses elsewhere,
-       so a photograph with pale edges still reads as a framed object on a
-       near-black page rather than bleeding into it. */
-    border: 1px solid var(--rule);
-  }
-
-  .cover figcaption {
-    margin-top: 0.7rem;
-    text-align: center;
-    font-size: 0.86rem;
-    font-style: italic;
-    color: var(--ink-faint);
-  }
-
-  /**
-   * एक स्तंभ या दो / one column, or two when there is media.
-   *
-   * बिना मीडिया वाली रचना पहले जैसी ही दिखती है — यही सबसे ज़रूरी है, क्योंकि
-   * ज़्यादातर रचनाओं के साथ कुछ नहीं होगा।
-   *
-   * A post with no media renders exactly as it always did. That matters more
-   * than the two-column case: most posts will be text alone, and they must not
-   * pay for a feature they do not use.
-   */
-  .post__cols {
-    display: grid;
-    gap: 3rem;
-  }
-
-  /**
-   * मीडिया हो तो पन्ना चौड़ा हो जाए / widen the page when there is a second column.
-   *
-   * BaseLayout सब कुछ `.wrap` (40rem) में रखता है — पढ़ने के लिए सही, पर उसमें
-   * रचना और पट्टी दोनों नहीं आतीं। इसलिए दो स्तंभ वाला हिस्सा उससे बाहर निकलकर
-   * बीच में बैठता है।
-   *
-   * The site wraps content at 40rem, which is right for reading a poem and
-   * deliberately narrow. A rail cannot fit beside it, so a post with media steps
-   * outside that wrapper and re-centres itself.
-   *
-   * ── चौड़ाई परदे के साथ बढ़ती है / the width follows the screen ────────────────
-   * एक तय चौड़ाई (58rem) बड़े परदे पर बीच में अटकी हुई लगती थी — दोनों तरफ़ बहुत
-   * ख़ाली जगह।
-   *
-   * A fixed 58rem looked stranded on a large monitor, with a wide empty margin
-   * either side. `min()` lets it grow with the viewport and stop at 82rem, which
-   * is where the poem column would start getting too wide to read comfortably —
-   * past roughly 50rem of Devanagari the eye loses the start of the next line.
-   */
-  .post__cols.has-media {
-    grid-template-columns: minmax(0, 1fr) 23rem;
-    align-items: start;
-    gap: 4rem;
-
-    width: min(82rem, calc(100vw - 5rem));
-    max-width: none;
+    width: min(44rem, calc(100vw - 2.6rem));
     position: relative;
     left: 50%;
     transform: translateX(-50%);
+    padding-bottom: 3rem;
+  }
+
+  /* ---------- ऊपर की चौड़ी पट्टी / the banner ---------- */
+
+  .banner {
+    position: relative;
+    isolation: isolate;
+    /* पूरे परदे भर / edge to edge. `100vw` with body's overflow-x hidden, the
+       same trick the site's other full-bleed sections use. */
+    width: 100vw;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(20rem, 38vw, 29rem);
+    padding: calc(var(--nav-h) + 3rem) 1.3rem 2.6rem;
+    overflow: hidden;
+  }
+
+  .banner__art {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    animation: artIn 1.4s ease both;
   }
 
   /**
-   * बीच के परदों पर थोड़ी कम जगह / tighter margins on mid-size screens.
-   * A laptop at ~1280px has no room to spare, so the gutters shrink and the
-   * rail gives back a little width before the layout stacks entirely.
+   * तस्वीर परदे से बड़ी रखी जाती है / the image is deliberately oversized.
+   * Parallax moves it down as the reader scrolls; at 1:1 that would drag its
+   * top edge into view as a hard line.
    */
-  @media (max-width: 84rem) {
-    .post__cols.has-media {
-      grid-template-columns: minmax(0, 1fr) 21rem;
-      gap: 3rem;
-      width: calc(100vw - 3rem);
+  .banner__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* बीच से थोड़ा ऊपर / slightly above centre, because in a photograph of a
+       person the face is almost never in the lower half. */
+    object-position: 50% 42%;
+    transform: scale(1.12);
+    will-change: transform;
+  }
+
+  /**
+   * तस्वीर के ऊपर हल्की रंगत / a glaze of colour over the photograph.
+   *
+   * दो धीरे बहते हुए रंग के गोले, बहुत मद्धम. ये तस्वीर को साइट के अपने रंगों —
+   * सुनहरा और terracotta — से जोड़ देते हैं, ताकि हर रचना का ऊपरी हिस्सा एक ही
+   * साइट का लगे, चाहे तस्वीर कोई भी हो. `opacity` कम है क्योंकि नीचे असली
+   * तस्वीर है; पूरी ताक़त पर दोनों आपस में लड़ने लगते हैं.
+   *
+   * Two slow-drifting pools of colour that tie any photograph back to the
+   * site's own palette, so every post's header belongs to the same site
+   * whatever picture is behind it. Kept faint because there is a real image
+   * underneath; at full strength the two fight.
+   */
+  .banner__aurora {
+    position: absolute;
+    inset: -20% -10% 0;
+    opacity: 0.38;
+    background:
+      radial-gradient(44% 60% at 18% 18%, rgba(var(--amber-rgb), 0.24), transparent 68%),
+      radial-gradient(40% 52% at 84% 30%, rgba(var(--kite-rgb), 0.2), transparent 70%),
+      radial-gradient(48% 48% at 56% 6%, rgba(143, 176, 188, 0.12), transparent 72%);
+    animation: drift 26s ease-in-out infinite alternate;
+  }
+
+  /**
+   * हल्का दानापन / film grain.
+   * सपाट ढलानें बड़े परदे पर पट्टियों में बँट जाती हैं (banding); महीन दाना उसे
+   * तोड़ देता है और गहरे रंग को छपे हुए काग़ज़ जैसा बनाता है.
+   * Flat gradients band on a wide display; a fine noise breaks the steps up and
+   * gives the dark ground the texture of print rather than of a screen.
+   */
+  .banner__grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /**
+   * लिखावट के नीचे अँधेरा / the scrim.
+   *
+   * दो दिशाओं में: बाईं ओर गहरा (वहाँ शीर्षक है) और नीचे की ओर काग़ज़ में घुलता
+   * हुआ. यही वह चीज़ है जो किसी भी तस्वीर पर शीर्षक को पढ़ने लायक़ रखती है — बिना
+   * इसके एक हल्की तस्वीर चढ़ते ही शीर्षक ग़ायब हो जाता है, और यह तय करना लेखक के
+   * हाथ में नहीं होना चाहिए.
+   *
+   * Two directions: darkest at the left, where the type is, and dissolving into
+   * the paper at the bottom. This is what keeps the title legible over *any*
+   * photograph — without it a pale upload erases the heading, and whether the
+   * title can be read should not depend on which picture was chosen.
+   */
+  .banner__veil {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(22, 20, 18, 0.95) 0%,
+        rgba(22, 20, 18, 0.82) 38%,
+        rgba(22, 20, 18, 0.5) 68%,
+        rgba(22, 20, 18, 0.62) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(22, 20, 18, 0.72) 0%,
+        rgba(22, 20, 18, 0.18) 32%,
+        rgba(22, 20, 18, 0.55) 78%,
+        var(--paper) 100%
+      );
+  }
+
+  .banner__inner {
+    width: min(44rem, 100%);
+    margin: 0 auto;
+  }
+
+  /* ---------- शीर्षक के ऊपर की पंक्ति / the eyebrow ---------- */
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.6rem;
+    margin-bottom: 1.1rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    color: var(--ink-soft);
+    animation: riseIn 0.8s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+    animation-delay: 0.05s;
+  }
+
+  .eyebrow__cat {
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+  }
+
+  .eyebrow__sep {
+    color: var(--kite);
+    opacity: 0.65;
+  }
+
+  /**
+   * शीर्षक / the title.
+   * सुनहरी ढलान — बिलकुल हल्की, जैसे अक्षरों पर ऊपर से रोशनी पड़ रही हो. नीचे का
+   * `color` ज़रूरी है: जिस browser में `background-clip: text` न चले, उसमें बिना
+   * उसके पूरा शीर्षक पारदर्शी हो जाता.
+   * The gilt is light falling on the letterforms, not coloured text. The plain
+   * `color` underneath matters: without it a browser lacking background-clip
+   * paints the entire heading transparent.
+   */
+  .banner__title {
+    margin: 0;
+    max-width: 18ch;
+    font-size: clamp(2.05rem, 5.6vw, 3.35rem);
+    font-weight: 400;
+    line-height: 1.32;
+    color: #fdf6e9;
+    background: linear-gradient(180deg, #fff8ec 0%, #f2e6d0 52%, #d9bd90 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: riseIn 0.9s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+    animation-delay: 0.13s;
+  }
+
+  /**
+   * शीर्षक के नीचे की पंक्ति / the standfirst.
+   * यही पंक्ति खोज-परिणाम और साझा किए गए लिंक में दिखती है, इसलिए पन्ने पर भी
+   * वही वादा दिखना चाहिए जो बाहर किया गया है.
+   * This is the same sentence search results and shared links show, so putting
+   * it on the page keeps the promise made outside it visible inside it.
+   */
+  .banner__lede {
+    max-width: 32rem;
+    margin: 1.1rem 0 0;
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--ink-soft);
+    animation: riseIn 0.9s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+    animation-delay: 0.21s;
+  }
+
+  /* ---------- नाम की पट्टी / the byline strip ---------- */
+
+  /**
+   * ⚠️ यहाँ `animation` मत लगाइए / never put an animation on this element.
+   *
+   * यह पट्टी `left: 50%` + `translateX(-50%)` से पूरे परदे भर होती है, और
+   * `riseIn` का आख़िरी क़दम `transform: none` है. animation चलती हुई property
+   * सामान्य नियम से ऊपर होती है, इसलिए वह translate मिटा देती है — पट्टी
+   * `left: 50%` पर अटककर आधे परदे से दाईं ओर खिसक जाती है. भीतर वाला हिस्सा
+   * अलग है और उस पर कोई layout वाला transform नहीं, इसलिए animation वहाँ सुरक्षित
+   * है.
+   *
+   * The strip is made full-bleed with `left: 50%` + `translateX(-50%)`, and
+   * `riseIn` ends on `transform: none`. An animated property outranks a normal
+   * declaration, so the animation wiped the centring translate and the strip
+   * sat in the right-hand half of the screen. The inner element carries no
+   * layout transform, so the animation is safe there.
+   */
+  .byline {
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    background: linear-gradient(180deg, rgba(236, 228, 214, 0.035), transparent);
+    padding: 0 1.3rem;
+    margin-bottom: 3.2rem;
+  }
+
+  .byline__inner {
+    width: min(44rem, 100%);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.95rem 0;
+    animation: riseIn 0.9s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+    animation-delay: 0.28s;
+  }
+
+  .byline__face {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+    border-radius: 50%;
+    object-fit: cover;
+    /* चेहरा बीच से ऊपर होता है / a face sits above the middle of a photograph,
+       so a centred crop of a portrait cuts the head off. */
+    object-position: 50% 30%;
+    /* सुनहरा छल्ला, तस्वीर से थोड़ा हटकर / a gilt ring held off the photograph by
+       a dark gap, so a pale picture still ends on a visible edge. */
+    box-shadow:
+      0 0 0 1px var(--paper),
+      0 0 0 2px rgba(var(--amber-rgb), 0.55);
+  }
+
+  .byline__who {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .byline__name {
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .byline__role {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- रचना का अंत / the colophon ---------- */
+
+  .colophon {
+    margin-top: 3.4rem;
+    text-align: center;
+  }
+
+  .colophon__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    max-width: 18rem;
+    margin: 0 auto;
+    font-size: 0.8rem;
+    color: var(--amber);
+  }
+
+  .colophon__mark span {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--amber-rgb), 0.5), transparent);
+  }
+
+  /* दस्तख़त / the signature, in the handwriting face the homepage uses. */
+  .colophon__sign {
+    margin: 1rem 0 0;
+    font-family: 'Kalam', 'Tiro Devanagari Hindi', cursive;
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+  }
+
+  /**
+   * ── रचना के बाद वाला हिस्सा / everything after the poem ──────────────────────
+   * पसंद, साझा और बातचीत एक ही तख़्ते पर बैठते हैं. पहले ये सीधे काग़ज़ पर थे और
+   * रचना के साथ घुल जाते थे — पाठक को पता ही नहीं चलता था कि रचना कहाँ ख़त्म हुई
+   * और उसके बारे में बातचीत कहाँ से शुरू.
+   *
+   * Like, share and comments share one raised panel. Loose on the page they
+   * blurred into the poem itself, leaving no line between the writing and the
+   * conversation about it.
+   */
+  .post-foot {
+    margin-top: 3.5rem;
+    padding: 1.9rem 2rem 2.1rem;
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: linear-gradient(165deg, var(--glass), rgba(236, 228, 214, 0));
+  }
+
+  /* तख़्ते के भीतर ऊपर की लकीर दोहराव है / the panel's own edge already does what
+     these borders were doing outside it. */
+  .post-foot :global(.post-actions) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .post-foot :global(.comments) {
+    margin-top: 2.5rem;
+  }
+
+  .post-all {
+    display: flex;
+    justify-content: center;
+    padding-top: 2.5rem;
+  }
+
+  @media (max-width: 44rem) {
+    .banner {
+      min-height: 17rem;
+      padding: calc(var(--nav-h) + 2.2rem) 1.3rem 1.9rem;
+    }
+
+    .banner__title {
+      max-width: none;
+    }
+
+    .byline {
+      margin-bottom: 2.4rem;
+    }
+
+    .post-foot {
+      /* फ़ोन पर किनारे की जगह लिखावट को मिले / on a phone the padding is worth
+         more as text width than as frame. */
+      padding: 1.5rem 1.15rem 1.7rem;
+      border-radius: 14px;
     }
   }
 
-  .post__body {
-    /* लंबी पंक्ति grid को फैलाने न पाए / stop a long line blowing out the column */
-    min-width: 0;
-    /**
-     * पंक्ति कितनी भी चौड़ी न हो जाए / cap the measure even when the column is wide.
-     *
-     * चौड़ा पन्ना अच्छा लगता है, चौड़ी पंक्ति नहीं — आँख अगली पंक्ति की शुरुआत
-     * खो देती है। बची हुई जगह रचना और पट्टी के बीच चली जाती है।
-     *
-     * A wide page is good; a wide line of text is not. Past roughly this width
-     * the eye loses its place returning to the start of the next line, which is
-     * worse in Devanagari where the shirorekha gives every line the same top
-     * edge. Any leftover width becomes gutter between the poem and the rail.
-     */
-    max-width: 52rem;
+  /* ---------- गति / motion ---------- */
+
+  @keyframes riseIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
-  /* दो स्तंभ होने पर रचना बाएँ से शुरू हो, बीच से नहीं */
-  .post__cols.has-media .post__body :global(.post-body) {
-    text-align: start;
+  @keyframes artIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
-  .post-nav {
-    display: flex;
-    justify-content: center;
-    padding-top: 0.5rem;
-  }
-
-  /**
-   * छोटे परदे पर एक के नीचे एक / stack on narrow screens.
-   * 68rem क्योंकि 20rem की पट्टी + पढ़ने लायक़ चौड़ाई इससे कम में नहीं आती.
-   * Below this width the rail and a readable measure cannot coexist, so the
-   * media moves under the poem rather than squeezing it.
-   */
-  @media (max-width: 68rem) {
-    .post__cols.has-media {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 2.5rem;
+  @keyframes drift {
+    from {
+      transform: translate3d(-2%, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(3%, 2%, 0) scale(1.08);
     }
   }
 </style>

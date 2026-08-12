@@ -15,7 +15,12 @@
     left: 0;
     height: 2px;
     width: 0;
-    background: var(--kite);
+    /* सपाट terracotta की जगह ढलान — लकीर का सिरा सुनहरा होकर ख़त्म होता है, तो
+       नज़र को पता चलता है कि वह बढ़ रही है, सिर्फ़ लंबी नहीं हो रही.
+       A flat bar of one colour only reads as "wide"; ending on the gilt gives
+       the leading edge a position the eye can actually track. */
+    background: linear-gradient(90deg, var(--kite), var(--amber));
+    box-shadow: 0 0 12px -2px rgba(var(--amber-rgb), 0.7);
     z-index: 99;
     transition: width 0.1s linear;
   }

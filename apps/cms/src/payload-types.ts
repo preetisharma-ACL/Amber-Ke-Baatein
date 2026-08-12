@@ -168,6 +168,13 @@ export interface Post {
     [k: string]: unknown;
   };
   category: number | Category;
+  /**
+   * रचना के पन्ने पर सबसे ऊपर, पूरी चौड़ाई में दिखती है। बहुत चौड़ी तस्वीर चुनिए — कम से कम 1900px चौड़ी। इसके ऊपर शीर्षक छपता है, इसलिए साइट इसे गहरा कर देती है और ऊपर-नीचे से थोड़ी कट सकती है, तो ज़रूरी हिस्सा बीच में रखिए। खाली छोड़ेंगे तो साइट की अपनी बनी-बनाई तस्वीर लग जाएगी — कुछ टूटेगा नहीं।
+   */
+  bannerImage?: (number | null) | Media;
+  /**
+   * रचना के साथ लगी तस्वीर। वीडियो चलाने से पहले जो तस्वीर दिखती है, वह भी यही है (जब मंच अपनी तस्वीर न दे, जैसे Instagram)।
+   */
   coverImage?: (number | null) | Media;
   /**
    * रचना का पाठ। रचना के बग़ल में सुनने का बटन दिखेगा।
@@ -479,6 +486,7 @@ export interface PostsSelect<T extends boolean = true> {
   excerpt?: T;
   content?: T;
   category?: T;
+  bannerImage?: T;
   coverImage?: T;
   audio?: T;
   videoUrl?: T;
@@ -649,7 +657,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * होम पन्ने पर दिखने वाला परिचय — नाम, भूमिका, दो पंक्तियाँ अपने बारे में, और दस्तख़त। Save करते ही साइट दोबारा बन जाती है।
+ * आपका परिचय — नाम, भूमिका, गोल तस्वीर, दो पंक्तियाँ अपने बारे में, और दस्तख़त। यह होम पन्ने पर और हर रचना के शीर्षक के नीचे दिखता है। Save करते ही साइट दोबारा बन जाती है।
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "identity".
@@ -657,11 +665,11 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface Identity {
   id: number;
   /**
-   * होम पन्ने पर दो जगह दिखता है — बाईं ओर और तस्वीर के नीचे — और नीचे की पट्टी में copyright में भी, अगर वह खाना खाली छोड़ा हो।
+   * होम पन्ने पर दो जगह, हर रचना के शीर्षक के नीचे गोल तस्वीर के साथ, और नीचे की पट्टी में copyright में भी — अगर वह खाना खाली छोड़ा हो।
    */
   byline: string;
   /**
-   * नाम के ठीक नीचे, छोटे अक्षरों में — जैसे "कवि"।
+   * नाम के ठीक नीचे, छोटे अक्षरों में — जैसे "कवि"। होम पन्ने पर और हर रचना के नीचे नाम के साथ दिखती है।
    */
   role?: string | null;
   /**
@@ -680,6 +688,10 @@ export interface Identity {
    * पोलरॉइड फ़्रेम में दिखने वाली तस्वीर। खड़ी (portrait) तस्वीर सबसे अच्छी लगती है — फ़्रेम 4:5 का है और बाक़ी हिस्सा अपने आप कट जाता है, इसलिए चेहरा बीच में रखिए। खाली छोड़ेंगे तो पुरानी तस्वीर ही रहेगी।
    */
   portraitImage?: (number | null) | Media;
+  /**
+   * हर रचना के शीर्षक के नीचे, नाम के साथ दिखने वाली छोटी गोल तस्वीर। सिर्फ़ चेहरे वाली, चौकोर (square) तस्वीर सबसे अच्छी लगती है — कम से कम 200px। खाली छोड़ेंगे तो ऊपर वाली "अपनी तस्वीर" ही गोल करके दिखा दी जाएगी।
+   */
+  avatarImage?: (number | null) | Media;
   /**
    * पोलरॉइड के नीचे हाथ से लिखी-सी पंक्ति।
    */
@@ -761,6 +773,7 @@ export interface IdentitySelect<T extends boolean = true> {
   signature?: T;
   heroImage?: T;
   portraitImage?: T;
+  avatarImage?: T;
   portraitCaption?: T;
   portraitDatestamp?: T;
   handle?: T;

@@ -1,0 +1,192 @@
+---
+/**
+ * ऊपर लौटने का गोला / the floating back-to-top control.
+ *
+ * ऊपर की पतली लकीर (ReadingProgressBar) बताती है कि कितना पढ़ लिया, पर वह छूने
+ * लायक़ चीज़ नहीं है। लंबी रचना के बीच से ऊपर लौटने के लिए पाठक को या तो बहुत
+ * स्क्रॉल करना पड़ता है या browser का अपना रास्ता ढूँढना पड़ता है।
+ *
+ * The hairline at the top of the window says how far you have read but cannot
+ * be pressed. This is the same number as a ring you can tap, which matters most
+ * on a phone where "scroll all the way back up" is the only alternative.
+ *
+ * ── बिना JavaScript के दिखता ही नहीं / hidden until JavaScript says otherwise ─
+ * `hidden` markup में लिखा है और script उसे हटाती है. जो बटन कुछ कर ही नहीं
+ * सकता, उसे दिखाना पाठक से झूठ बोलना है।
+ * The attribute ships in the markup and the script removes it. A button that
+ * cannot act should not be drawn.
+ */
+
+/** 2πr, r = 19 — dash की लंबाई इसी से बनती है / the ring's circumference. */
+const CIRCUMFERENCE = 2 * Math.PI * 19;
+---
+
+<button class="dial" type="button" data-dial hidden aria-label="ऊपर चलिए / Back to top">
+  <svg class="dial__ring" viewBox="0 0 44 44" aria-hidden="true">
+    <circle class="dial__track" cx="22" cy="22" r="19" />
+    <circle
+      class="dial__meter"
+      cx="22"
+      cy="22"
+      r="19"
+      data-meter
+      style={`stroke-dasharray:${CIRCUMFERENCE};stroke-dashoffset:${CIRCUMFERENCE}`}
+    />
+  </svg>
+  <span class="dial__arrow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 19V6M6 12l6-6 6 6"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+  </span>
+</button>
+
+<style>
+  .dial {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    /* navbar 60 पर है — यह उससे नीचे रहे / below the navbar, above the page. */
+    z-index: 50;
+    width: 3.1rem;
+    height: 3.1rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--glass-line);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--ink-soft);
+    background: rgba(32, 29, 25, 0.72);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.9);
+
+    /* दिखने से पहले नीचे बैठा रहता है / parked below until there is something
+       to go back up to, so it never covers the first screen of a poem. */
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+    pointer-events: none;
+    transition:
+      opacity 0.4s ease,
+      transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1),
+      border-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .dial.is-on {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .dial:hover {
+    color: var(--amber);
+    border-color: rgba(var(--amber-rgb), 0.55);
+  }
+
+  .dial:active {
+    transform: scale(0.93);
+  }
+
+  .dial:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 3px;
+  }
+
+  .dial__ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* 0% ऊपर से शुरू हो / start the sweep at twelve o'clock rather than at
+       three, which is where SVG's zero angle sits. */
+    transform: rotate(-90deg);
+  }
+
+  .dial__track,
+  .dial__meter {
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .dial__track {
+    stroke: rgba(236, 228, 214, 0.1);
+  }
+
+  .dial__meter {
+    stroke: var(--amber);
+    stroke-linecap: round;
+    /* लकीर हर frame पर नहीं, हल्की देर से चले / a touch of easing keeps the
+       ring from jittering on a trackpad's fine-grained scroll events. */
+    transition: stroke-dashoffset 0.12s linear;
+  }
+
+  .dial__arrow svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    display: block;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .dial:hover .dial__arrow svg {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 44rem) {
+    .dial {
+      right: 1rem;
+      bottom: 1rem;
+      width: 2.85rem;
+      height: 2.85rem;
+    }
+  }
+</style>
+
+<script>
+  const dial = document.querySelector<HTMLButtonElement>('[data-dial]');
+  const meter = dial?.querySelector<SVGCircleElement>('[data-meter]');
+
+  if (dial && meter) {
+    dial.hidden = false;
+
+    const total = 2 * Math.PI * 19;
+    /* इतना पढ़ लेने पर ही दिखे / only once there is a real distance to travel
+       back — appearing after a flick of the wrist would be noise. */
+    const APPEAR_AT = 520;
+
+    let ticking = false;
+
+    const paint = () => {
+      ticking = false;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const done = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+      meter.style.strokeDashoffset = String(total * (1 - done));
+      dial.classList.toggle('is-on', window.scrollY > APPEAR_AT);
+    };
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(paint);
+      },
+      { passive: true }
+    );
+
+    /* `scroll-behavior: smooth` html पर पहले से है, पर वह उन पाठकों के लिए भी
+       चलेगा जिन्होंने गति बंद कर रखी है — इसलिए यहाँ पूछकर तय होता है.
+       The site already sets smooth scrolling globally; asking here means a
+       reader who has turned motion off gets an instant jump instead. */
+    dial.addEventListener('click', () => {
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+    });
+
+    paint();
+  }
+</script>

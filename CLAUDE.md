@@ -220,25 +220,133 @@ A post can carry a recitation and one video. Both optional, both independent.
   vs Instagram from the link itself, so the author pastes what they copied
   rather than classifying it. It handles `watch?v=`, `youtu.be`, `/shorts/`,
   `m.youtube.com`, `/reel/`, `/reels/`, `/p/`, and strips tracking params.
-- **An unrecognised URL renders nothing** and the layout stays single-column —
-  the URL is parsed in `PostLayout` too, so a bad link never widens the page
-  into an empty rail.
+- **An unrecognised URL renders nothing.** `PostMedia` renders nothing at all
+  when it has neither a playable audio file nor a parseable video link — an
+  empty framed box under a poem reads as something broken.
 - **Cloudinary files audio under `resource_type: 'video'`.** There is no audio
   type. `lib/cloudinary-adapter.ts` derives it from the filename, because
   `handleDelete`/`generateURL` get a filename but no mime type — get it wrong
   and deletes silently leave the file on the account.
 - **The two platforms keep different aspect ratios** — 16:9 for YouTube, 9:16
-  for a reel. Forcing one on both letterboxes the other into a strip.
-- The rail is **sticky above 68rem only**; when the layout stacks, sticky would
-  pin a video over the poem.
-- **A post with no media renders exactly as before**, single column at the site's
-  40rem measure. Only a post *with* media widens to 58rem — most posts are text
-  alone and must not pay for a feature they do not use.
+  for a reel. Forcing one on both letterboxes the other into a strip. The frame
+  sizes itself from that (`21rem` / `12.5rem`), which is why the panel's grid is
+  `1fr auto` rather than a fixed fraction.
+
+⚠️ **The video is a still and a play button, not an iframe.** `PostMedia` ships
+a poster with a gilt play control; the player is created on the first press.
+Otherwise every reader — including everyone who never presses play — downloads a
+third-party player and opens a connection to that platform just to read a poem,
+and Instagram's embed arrives with its own white chrome on a dark page. The
+poster is the platform's own still where one exists (`posterUrl` in
+`utils/embeds.ts` — YouTube publishes one at a predictable address, Instagram
+does not without its token-based oEmbed API), otherwise the post's cover.
+
+**The facade is a real `<a href>` to the platform, upgraded by script** — never
+a `<button>`. With no JavaScript the video is still watchable, just elsewhere; a
+button would simply do nothing. The handler also leaves ctrl/cmd/middle-click
+alone, and strips `href`/`target` once the player is in, so a second click
+during playback does not navigate away.
+
+⚠️ **This used to be a sticky rail beside the poem, and is not any more.** The
+rail split the page into two columns and only posts *with* media got the wide
+layout, so the site had two different measures depending on what a post
+happened to carry — and a video played beside the poem it was competing with.
+It is now a panel *below* the poem: one measure for every post, and the
+recitation is offered after the reading rather than during it. If you find
+`has-media`, `media-rail` or `.post__cols` referenced anywhere, it is dead.
 
 ⚠️ When testing this, grep the **markup**, not the page: Astro inlines the
-scoped CSS, so `has-media` and `media-rail` appear in every post's `<style>`
+scoped CSS, so `media-item` and `media-panel` appear in every post's `<style>`
 block whether or not the post has media. Strip `<style>` first or you will
 diagnose a bug that is not there.
+
+## The post page
+
+`PostLayout.astro` reads at **44rem**, not the site's 40rem — the verse is
+centred within it and the media panel, comments and related list sit under it,
+and those look pinched at the narrower measure. It steps outside `.wrap` with
+the `100vw` / `left: 50%` trick the site's other wide sections use.
+
+**The banner** (`.banner`) is full-bleed, starts *behind* the transparent
+navbar, and stacks four layers: the image, a slow aurora, film grain, and a
+scrim. The scrim is the load-bearing one — it is darkest on the left, where the
+title is, so a pale upload cannot erase the heading. Whether the title can be
+read must not depend on which photograph was chosen. No banner → the aurora
+carries the header alone.
+
+- **`bannerImage` (Posts) and `avatarImage` (identity) are new CMS uploads.**
+  A banner is ~4:1 with type over it; a cover is portrait and sits at the
+  reading measure. No banner → `src/assets/poetry-banner.png`, so every post
+  opens on a photograph and there is no "no image" branch in the layout.
+  ⚠️ **The cover deliberately does not stand in for a missing banner.** It did
+  briefly. Two problems: a portrait cropped to 4:1 loses exactly what mattered,
+  and since most posts have a cover, the purpose-made banner would never have
+  appeared at all. The byline photo chains
+  the same way: `avatarImage` → the polaroid `portraitImage` →
+  `src/assets/alok-portrait.jpg` bundled in the repo. There is always a
+  photograph. It briefly printed the name's first letter instead, which was not
+  a real alternative — the picture exists, it simply had not been uploaded yet,
+  and an initial reads as an image that failed to load.
+- **Cropping stays in the browser** (`c_limit` + `object-fit: cover`), per the
+  rule the gallery and homepage already follow. Letting Cloudinary crop is the
+  quickest way to cut a face in half and never find out.
+- ⚠️ **Bundled fallback images belong in `src/assets/`, never `public/`.** Astro
+  optimises the first and copies the second byte for byte: `poetry-banner.png`
+  went 1678kB → 47kB on the move, and it is on every post that has no banner of
+  its own. Same reason `kite-sky.jpg` and `alok-portrait.jpg` live there.
+- **The gilt (`--amber`, 8.9:1 on `--paper`) is a third accent, added here.**
+  Everything on this page was terracotta, so nothing could stand out from
+  anything else. It marks what is meant to be noticed: category, drop cap, verse
+  label, lyric lines, byline ring, progress bar.
+- **Reading time is derived, not stored** (`utils/reading.ts`, 160 wpm because
+  this is verse). No CMS field, nothing for the author to fill in.
+- **The standfirst prints only when it is not the poem's first line repeated.**
+  `echoesOpening()` compares 40 punctuation-stripped characters. Excerpts here
+  are written both ways — as summaries and as lifted opening lines — and the
+  second kind printed the same sentence twice within one screen. Of the four
+  posts live on 2026-08-12, two show a standfirst and two do not; that is the
+  check working, not a bug.
+- **`.reveal-ready` is added by an inline `slot="head"` script, never by the
+  module script.** The rule direction matters: elements are hidden *only* when
+  a feature-and-motion check has already passed, so a script that fails to load
+  leaves the poem fully readable. Written the other way round — hidden in CSS,
+  shown by JS — a broken bundle means an invisible post.
+
+⚠️ **Two ways `transform` gets silently overwritten on this page.** Both show up
+as "the CSS looks right and does nothing", so they are worth knowing before
+debugging one:
+
+- **An `animation` beats a normal `transform` declaration.** `.byline` and
+  `.banner` are made full-bleed with `left: 50%` + `translateX(-50%)`, and
+  `riseIn` ends on `transform: none`. Putting the animation on the full-bleed
+  element itself wiped the centring translate and parked the strip in the
+  right-hand half of the screen. Animate an inner wrapper instead.
+- **The reveal rule beats a hover.** `.reveal-ready .post-body > *.is-in` sets
+  `transform: none` at equal specificity and later in `global.css`, so a
+  `transform`-based hover inside `.post-body` never fires. Use the standalone
+  `translate` property, which composes instead of replacing.
+
+### The body
+
+- **The verse block is two hairlines, not a card.** It was a bordered tinted box;
+  a post carrying three or four of them became a stack of containers and the
+  poem started reading as a pull-quote. Blocks are numbered by a CSS counter
+  (`पंक्तियाँ · एक`) through an `@counter-style` with Hindi words, so the author
+  types no numbers and reordering renumbers itself. Unsupported → devanagari
+  digits, which read fine.
+- ⚠️ **The drop cap is a calculated risk.** Browsers segment `::first-letter` by
+  grapheme cluster, so vowels and plain consonants keep their matras; conjuncts
+  are less certain across engines. It is deliberately a plain `float` and not
+  `initial-letter` — worst case the letter is merely large and the paragraph
+  still reads.
+- Lyric lines are **gilt and centred**, not slate: the voice has changed hands
+  and that should be visible without reading.
+
+**"इसी सिलसिले में"** comes from `getStaticPaths`, which hands each page three
+`PostLink`s (slug, title, category, minutes) — same category first, then topped
+up from the rest. Not whole `Post`s: that would ship three extra poems' worth of
+rendered HTML to print three titles. Reading times are computed once into a Map,
+since otherwise the same post's HTML is re-stripped on every page that links it.
 
 ## Likes, share and comments
 
