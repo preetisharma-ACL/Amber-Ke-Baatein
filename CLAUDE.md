@@ -141,7 +141,9 @@ UploadThing only, which is why this one is hand-written.
   upload time would mean uploading near-duplicates and *still* being unable to
   serve a size nobody planned for.
 - **Gallery is its own collection, separate from Media**, so post cover images
-  do not turn up in the public grid.
+  do not turn up in the public grid. A gallery row can still *point* at a Media
+  picture (`mediaImage`) rather than uploading it twice — see the gallery
+  section below.
 
 ⚠️ **`disablePayloadAccessControl: true` is what makes any of this work.** The
 plugin calls `generateURL` *only* when that flag is set. Without it the stored
@@ -200,6 +202,21 @@ that is actually there. Use a `GET`.
 - **The recordings tab is not a second collection.** A recitation uploaded for a
   poem appears here too — uploading it twice would be the obvious alternative
   and the wrong one.
+- **A gallery row carries either its own upload or a pick from `media`**
+  (`mediaImage`, an upload field, so the admin gives you "Choose from existing").
+  That is why the collection sets `upload.filesRequiredOnCreate: false` — and why
+  a `beforeValidate` hook rejects a row with neither, since the site skips
+  unusable rows silently and saving into silence is worse than being refused.
+  The row's own file wins if both are filled; `alt` is optional and falls back to
+  the picked picture's own alt, then to the caption.
+
+⚠️ **`getGallery()` reads `gallery` only — do not merge `media` back in.** It did
+briefly, on the reasoning that a picture uploaded to Media appeared nowhere. But
+Media is where every kind of picture accumulates — post covers, banners, the
+homepage furniture — so the grid filled with page furniture, and the only way to
+remove something was to delete it from Media, where a post was using it. The
+`mediaImage` pick answers the same problem from the other end without putting
+anything in the exhibition that was not deliberately hung there.
 - **`videos` holds a link, not a file.** A phone video is routinely 100MB+ and
   Cloudinary's free tier is ~25GB total; these videos already live on YouTube or
   Instagram. `fields/video-url.ts` shares one loose validator with `Posts.videoUrl`

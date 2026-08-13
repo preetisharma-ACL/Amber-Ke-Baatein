@@ -278,7 +278,7 @@ export interface Audio {
   focalY?: number | null;
 }
 /**
- * गैलरी वाले पन्ने की तस्वीरें। यहाँ जो जोड़ेंगे वही साइट पर दिखेगा — क्रम बदलना हो तो नीचे का नंबर बदलिए।
+ * गैलरी वाले पन्ने की तस्वीरें। यहाँ जो जोड़ेंगे सिर्फ़ वही साइट पर दिखेगा। नई फ़ाइल चढ़ाइए, या "पहले से चढ़ी हुई तस्वीर" में से चुन लीजिए। क्रम बदलना हो तो नीचे का नंबर बदलिए।
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "gallery".
@@ -286,13 +286,17 @@ export interface Audio {
 export interface Gallery {
   id: number;
   /**
+   * जो तस्वीर पहले से "तस्वीरें / Media" में है उसे यहाँ चुन लीजिए — दोबारा चढ़ाने की ज़रूरत नहीं। अगर आप ऊपर नई फ़ाइल चढ़ा रहे हैं तो इसे खाली छोड़ दीजिए। दोनों भरे हों तो ऊपर वाली फ़ाइल ही दिखेगी।
+   */
+  mediaImage?: (number | null) | Media;
+  /**
    * तस्वीर के नीचे हाथ की लिखावट में दिखेगा — जैसे "अपनी गली में"।
    */
   caption: string;
   /**
-   * स्क्रीन-रीडर इसे पढ़ते हैं और तस्वीर न खुलने पर यही दिखता है। एक छोटा वाक्य लिखिए।
+   * स्क्रीन-रीडर इसे पढ़ते हैं और तस्वीर न खुलने पर यही दिखता है। पहले से चढ़ी हुई तस्वीर चुनी है तो खाली छोड़ सकते हैं — उसका अपना विवरण इस्तेमाल हो जाएगा।
    */
-  alt: string;
+  alt?: string | null;
   /**
    * बड़ा नंबर पहले दिखता है। सामान्यतः 0 ही रहने दीजिए।
    */
@@ -515,6 +519,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "gallery_select".
  */
 export interface GallerySelect<T extends boolean = true> {
+  mediaImage?: T;
   caption?: T;
   alt?: T;
   order?: T;

@@ -22,31 +22,30 @@ export interface GalleryPhoto {
   height?: number;
 }
 
+/**
+ * `media` की चुनी हुई पंक्ति / a picture picked from Media.
+ * `depth=1` पर पूरी आती है; सिर्फ़ id आए तो कुछ चुना ही नहीं गया माना जाता है।
+ * Populated at depth=1; a bare id is treated as "nothing was picked".
+ */
+interface CmsMediaDoc {
+  id: number;
+  alt?: string | null;
+  url?: string;
+  width?: number;
+  height?: number;
+}
+
 interface CmsGalleryDoc {
   id: number;
   caption: string;
-  alt: string;
+  alt?: string | null;
   url?: string;
   width?: number;
   height?: number;
   order?: number;
   createdAt?: string;
-}
-
-/**
- * `media` की पंक्ति / a row from the Media collection.
- * `gallery` से दो फ़र्क़: कैप्शन ज़रूरी नहीं, और क्रम का खाना है ही नहीं।
- * Differs from `gallery` in exactly two ways: caption is optional, and there is
- * no `order` field at all — see getGallery() for how both are handled.
- */
-interface CmsMediaDoc {
-  id: number;
-  alt: string;
-  caption?: string | null;
-  url?: string;
-  width?: number;
-  height?: number;
-  createdAt?: string;
+  /** पहले से चढ़ी हुई तस्वीर, अगर चुनी गई हो / the pick from Media, if any. */
+  mediaImage?: CmsMediaDoc | number | null;
 }
 
 /** आलोक की आवाज़ें / a recording, as the gallery page shows it. */
@@ -105,8 +104,20 @@ export function cloudinaryVariant(url: string, transform: string): string {
  * for one tab and silently render an empty one for another — and an empty tab
  * looks like "nothing uploaded yet", not like a broken build.
  */
-async function fetchCollection<T>(slug: string, label: string, sort = '-order'): Promise<T[]> {
-  const url = `${CMS_URL}/api/${slug}?depth=0&limit=200&sort=${sort}`;
+async function fetchCollection<T>(
+  slug: string,
+  label: string,
+  sort = '-order',
+  /**
+   * जुड़ी हुई पंक्तियाँ चाहिए या नहीं / whether related rows must come populated.
+   * `defaultDepth` पूरे project में 0 है (देखिए CLAUDE.md — हर स्तर एक और round
+   * trip है), इसलिए जिसे जुड़ाव चाहिए वह ख़ुद माँगता है.
+   * `defaultDepth` is 0 project-wide because each level is another ~280ms round
+   * trip, so anything needing a relationship asks for it explicitly.
+   */
+  depth = 0
+): Promise<T[]> {
+  const url = `${CMS_URL}/api/${slug}?depth=${depth}&limit=200&sort=${sort}`;
 
   let response: Response;
   try {
@@ -127,91 +138,84 @@ async function fetchCollection<T>(slug: string, label: string, sort = '-order'):
 }
 
 /**
- * जाली में दोनों जगह की तस्वीरें / the grid draws from both upload collections.
+ * जाली में सिर्फ़ `gallery` की तस्वीरें / the grid shows the gallery collection.
  *
- * ── पहले सिर्फ़ `gallery` थी / this used to read `gallery` alone ──────────────
- * `media` अलग रखी गई थी ताकि रचनाओं की मुख्य तस्वीरें सार्वजनिक जाली में न आएँ।
- * पर व्यवहार में दोनों नाम — "तस्वीरें / Media" और "गैलरी / Gallery" — एक ही
- * जैसे लगते हैं, और जो तस्वीरें `media` में चढ़ गईं वे कहीं दिखीं ही नहीं। चढ़ाकर
- * कुछ न दिखना, ग़लत जगह दिख जाने से बुरा है।
+ * ── एक बार यह `media` को भी पढ़ता था / this briefly read `media` too ──────────
+ * तर्क यह था कि "तस्वीरें / Media" में चढ़ाई गई तस्वीर कहीं दिखती ही नहीं, और
+ * चढ़ाकर कुछ न दिखना उलझन पैदा करता है। पर `media` वह जगह है जहाँ हर तरह की
+ * तस्वीर जमा होती है — रचनाओं की मुख्य तस्वीरें, banner, होम पन्ने की तस्वीरें —
+ * यानी उसे पढ़ने का मतलब था कि पन्ने की सजावट भी सार्वजनिक जाली में आ जाए, और
+ * उसे रोकने का एक ही रास्ता बचे: तस्वीर को `media` से हटा देना, जहाँ वह किसी
+ * रचना के काम आ रही है।
  *
- * `media` was kept out so post cover images would not appear here. In practice
- * both names read as "where pictures go", and anything uploaded to `media`
- * simply vanished — which is worse than appearing somewhere unintended, because
- * there is no feedback at all.
+ * The reasoning was that a picture uploaded to Media appeared nowhere, and
+ * uploading into silence is confusing. But Media is where *every* kind of
+ * picture accumulates — post covers, banners, the homepage furniture — so
+ * reading it put page furniture into a public exhibition, and the only way to
+ * take something out was to delete it from Media, where a post was using it.
  *
- * ⚠️ नतीजा साफ़ रखिए / know what this now includes: रचनाओं की मुख्य तस्वीरें और
- * होम पन्ने की hero/portrait तस्वीरें भी `media` में हैं, इसलिए वे भी यहाँ आती
- * हैं। जो नहीं दिखानी, उसे `/admin` → तस्वीरें से हटा दीजिए।
+ * अब उलझन का हल उलटी दिशा से आता है: गैलरी की पंक्ति ख़ुद `media` में से तस्वीर
+ * चुन सकती है (`mediaImage`), इसलिए दोबारा चढ़ाने की ज़रूरत भी नहीं और यह भी तय
+ * रहता है कि जाली में सिर्फ़ वही है जो जान-बूझकर वहाँ रखा गया।
  *
- * Post covers and the homepage hero/portrait live in `media`, so they appear
- * here too. Anything that should not be public has to be deleted from `media`
- * — there is no per-image "show in gallery" switch. Add a checkbox field to the
- * Media collection if that control is ever wanted.
+ * The confusion is now answered from the other end: a gallery row can point at
+ * a picture already in Media, so nothing needs uploading twice — and the grid
+ * still contains only what was deliberately put there.
  */
 export async function getGallery(): Promise<GalleryPhoto[]> {
-  /**
-   * दोनों एक साथ माँगिए / ask for both at once.
-   * `media` में `order` नाम का खाना है ही नहीं, इसलिए उसे `-order` से छाँटना
-   * नहीं कहा जा सकता — वह नई-पहले (`-createdAt`) से आती है।
-   * `media` has no `order` field, so it cannot be sorted by one; it comes back
-   * newest-first instead. Requested in parallel because they are independent.
-   */
-  const [galleryDocs, mediaDocs] = await Promise.all([
-    fetchCollection<CmsGalleryDoc>('gallery', 'गैलरी'),
-    fetchCollection<CmsMediaDoc>('media', 'तस्वीरें', '-createdAt'),
-  ]);
+  // depth=1 इसलिए कि चुनी हुई तस्वीर पूरी आए, सिर्फ़ id नहीं.
+  // depth=1 so a picked picture arrives populated rather than as a bare id.
+  const docs = await fetchCollection<CmsGalleryDoc>('gallery', 'गैलरी', '-order', 1);
 
+  /* क्रम लगाने भर के लिए दो और खाने / two extra fields, carried only far enough
+     to sort by and then dropped. */
   type Sortable = GalleryPhoto & { order: number; createdAt: string };
 
-  const fromGallery: Sortable[] = galleryDocs
-    // बिना फ़ाइल वाली पंक्ति छोड़ दीजिए / skip a row whose upload failed, rather
-    // than rendering a broken frame on a page that is entirely pictures.
-    .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
-    .map((doc) => ({
-      id: doc.id,
-      caption: doc.caption,
-      alt: doc.alt,
-      url: doc.url!,
-      width: doc.width,
-      height: doc.height,
-      order: doc.order ?? 0,
-      createdAt: doc.createdAt ?? '',
-    }));
+  return (
+    docs
+      .map((doc): Sortable | null => {
+        const picked = doc.mediaImage && typeof doc.mediaImage === 'object' ? doc.mediaImage : null;
 
-  const fromMedia: Sortable[] = mediaDocs
-    .filter((doc) => typeof doc.url === 'string' && doc.url.length > 0)
-    .map((doc) => ({
-      id: doc.id,
+        /**
+         * अपनी फ़ाइल पहले, फिर चुनी हुई / the row's own file wins.
+         * दोनों भर देने पर कोई एक तो चुनना ही था; जो इसी पंक्ति के साथ चढ़ी है वह
+         * ज़्यादा नई और ज़्यादा जान-बूझकर की गई पसंद है.
+         * Something had to win when both are filled, and the file uploaded onto
+         * this row is the more recent and more deliberate of the two.
+         */
+        const url = doc.url?.trim() || picked?.url?.trim() || '';
+
+        // बिना तस्वीर वाली पंक्ति छोड़ दीजिए / skip a row with no usable picture,
+        // rather than rendering a broken frame on a page that is only pictures.
+        if (!url) return null;
+
+        return {
+          id: doc.id,
+          caption: doc.caption,
+          /**
+           * alt यहाँ ज़रूरी नहीं है — पहले चुनी हुई तस्वीर का अपना विवरण, फिर
+           * कैप्शन, जो ज़रूरी है. इसलिए यह कभी ख़ाली नहीं जाता.
+           * `alt` is optional on a gallery row: the picked picture's own
+           * description stands in, and failing that the caption, which is
+           * required — so this is never empty.
+           */
+          alt: doc.alt?.trim() || picked?.alt?.trim() || doc.caption,
+          url,
+          width: doc.width ?? picked?.width,
+          height: doc.height ?? picked?.height,
+          order: doc.order ?? 0,
+          createdAt: doc.createdAt ?? '',
+        };
+      })
+      .filter((photo): photo is Sortable => photo !== null)
       /**
-       * `media` में कैप्शन ज़रूरी नहीं है, पर पोलरॉइड के नीचे की पंक्ति ख़ाली नहीं
-       * रह सकती — वह lightbox का नाम भी है और screen-reader का भी। इसलिए न हो तो
-       * alt काम आता है, जो `media` में ज़रूरी है।
-       *
-       * Caption is optional on `media` but the line under the print is not
-       * decorative: it is also the button's accessible name and the lightbox
-       * title. `alt` is required on `media`, so it is always a usable stand-in.
+       * हाथ से लगाया क्रम पहले, फिर नई पहले / manual order first, then newest.
+       * `id` सबसे आख़िर में, ताकि बराबरी की हालत में क्रम हर build पर एक-सा रहे.
+       * `id` last so the order never wobbles between builds on a tie.
        */
-      caption: doc.caption?.trim() || doc.alt,
-      alt: doc.alt,
-      url: doc.url!,
-      width: doc.width,
-      height: doc.height,
-      // `media` में क्रम का खाना नहीं / no manual ordering exists on media.
-      order: 0,
-      createdAt: doc.createdAt ?? '',
-    }));
-
-  /**
-   * एक ही नियम, दोनों के लिए / one rule across both.
-   * हाथ से लगाया क्रम पहले (गैलरी वाली तस्वीरें ही वह रख सकती हैं), फिर नई पहले।
-   * Manual `order` wins — only gallery rows can carry one, so a curated
-   * photograph still outranks a recent upload — then newest first, matching how
-   * posts sort. `id` last so the order never wobbles between builds on a tie.
-   */
-  return [...fromGallery, ...fromMedia]
-    .sort((a, b) => b.order - a.order || b.createdAt.localeCompare(a.createdAt) || a.id - b.id)
-    .map(({ order: _order, createdAt: _createdAt, ...photo }) => photo);
+      .sort((a, b) => b.order - a.order || b.createdAt.localeCompare(a.createdAt) || a.id - b.id)
+      .map(({ order: _order, createdAt: _createdAt, ...photo }) => photo)
+  );
 }
 
 /**
